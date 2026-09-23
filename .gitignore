@@ -1,0 +1,13 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Claude Code local state
+.claude/settings.local.json
+evals/results/
+
+# Node (if tooling is added later)
+node_modules/

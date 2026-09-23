@@ -27,11 +27,14 @@ Change intent (for judging what was meant to be delivered):
 {{PR_TITLE_AND_BODY_OR_COMMIT_MESSAGES_OR_"not available"}}
 {{LINKED_ISSUE_SUMMARIES_OR_OMIT}}
 
+External context sources available (read-only): {{LIST_MCP_SERVERS_AND_CLIS_OR_"none detected"}}
+    e.g. gh (authenticated), mcp__github, mcp__atlassian (Jira/Confluence), mcp__linear
+
 Confidence threshold: report findings with confidence >= {{THRESHOLD}}.
 
 ## Constraints
 
-- Read-only. Do not edit files, do not run builds, tests, formatters or type-checkers, and do not check out other refs.
+- Read-only. Do not edit files, do not run builds, tests, formatters or type-checkers, and do not check out other refs. Use the external sources above only for reads (view, get, list, search, diff). Never comment, create, edit, transition, approve, merge or push; a guard hook will deny it. If something is denied, note what you could not check and continue.
 - Verify every finding by reading the code; do not report speculation.
 - Use exactly the output format from your instructions, including the finding ID prefix, so the lead can merge your report with the other passes.
 - If you find nothing above the threshold, say so in the format; do not pad.

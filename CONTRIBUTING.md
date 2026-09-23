@@ -29,13 +29,22 @@ Each agent answers exactly one question and names the other three as out of scop
 ```yaml
 name: <pass>-reviewer            # lowercase-hyphen, matches the filename
 description: >-                  # starts "Use this agent when …", includes 2–3 <example> blocks
-tools: Read, Grep, Glob, Bash    # Bash is for read-only git/gh inspection only
+tools: Read, Grep, Glob, Bash, ToolSearch, WebFetch, WebSearch, ListMcpResourcesTool, ReadMcpResourceTool, mcp__*
 disallowedTools: Edit, Write, MultiEdit, NotebookEdit
 model: inherit
 color: <one distinct colour per agent>
 ```
 
-Agents are read-only by design. Do not grant write tools.
+Agents are read-only by design. Do not grant write tools. External tooling is allowed through `WebFetch, WebSearch, ListMcpResourcesTool, ReadMcpResourceTool, mcp__*` in `tools:`, and the guard hook in `hooks/` is what keeps those reads only.
+
+## The read-only guard
+
+`hooks/readonly-guard.py` runs on every PreToolUse event while a reviewer agent is active (scoped via `READONLY_GUARD_AGENTS` in `hooks/hooks.json`). When you change it:
+
+- Keep it standard-library only and fail-closed: unknown commands and unclassifiable MCP tools are denied with a reason.
+- Add a test for every new allow or deny case in `hooks/test_readonly_guard.py` and run `python3 hooks/test_readonly_guard.py`.
+- Prefer adding a CLI to the per-tool tables (`GIT_*`, `GH_READONLY`, `GLAB_READONLY`) over widening the generic verb lists.
+- Never auto-allow anything that can send data or write to disk.
 
 ## Style
 
@@ -50,6 +59,7 @@ claude plugin validate --strict .
 claude plugin validate --strict .claude-plugin/plugin.json
 claude plugin validate --strict agents
 claude plugin validate --strict skills
+python3 hooks/test_readonly_guard.py
 ```
 
 Then load the plugin in a session and confirm the agents and skill appear:

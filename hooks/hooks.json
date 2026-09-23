@@ -1,0 +1,16 @@
+{
+  "description": "Keeps the four reviewer agents strictly read-only. While a *-reviewer agent from this plugin is running, denies file edits, state-changing shell commands and write-style MCP tools, and auto-allows recognised read operations (git/gh/glab/jira/linear reads, get/list/search MCP tools) so reviews do not stall on permission prompts. No effect on other agents or the main session.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "READONLY_GUARD_AGENTS='*completeness-reviewer,*correctness-reviewer,*compliance-reviewer,*consistency-reviewer' python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/readonly-guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

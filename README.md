@@ -22,6 +22,36 @@ A single "review this" prompt asks one context window to hold four different men
 
 All four share one confidence rubric (0 to 100, default report threshold 80), one severity scale (critical, major, minor), one false-positive list, and one output format with pass-prefixed finding IDs (`CMP-`, `COR-`, `CPL-`, `CNS-`) so the lead can merge them mechanically.
 
+## External tooling, strictly read-only
+
+The reviewers can use whatever MCP servers and CLIs the session already has, such as GitHub or GitLab, Jira, Linear, Confluence, Notion and Sentry, to pull in PR descriptions, ticket acceptance criteria, prior review comments, ADRs and CI status. They are never allowed to change anything. Read-only is enforced at three layers:
+
+| Layer | Mechanism | What it does |
+|---|---|---|
+| Tool access | `tools:` / `disallowedTools:` in each agent | Grants Read, Grep, Glob, Bash, WebFetch, WebSearch and all MCP tools (`mcp__*`); removes Edit, Write, MultiEdit, NotebookEdit. |
+| Guard hook | `hooks/hooks.json` → `hooks/readonly-guard.py` (PreToolUse) | While a reviewer agent is running: denies file edits, state-changing shell commands (`git push`, `gh pr comment`, `rm`, redirection to files, scripting languages, package managers, …) and write-style MCP tools (`create_*`, `update_*`, `add_comment`, `transition*`, …). Auto-allows recognised reads (`git diff`, `gh pr view`, `jira issue view`, `mcp__*__get_*`, `list_*`, `search_*`) so reviews do not stall on permission prompts. Fails closed: anything it cannot classify is denied with a reason telling the agent what to use instead. Has no effect on other agents or the main session. |
+| Instructions | "External tooling (read-only)" section in every agent prompt | Tells the reviewer what sources to use, that every call must be a read, and not to work around a denial. |
+
+Verified end to end in a headless session: a reviewer agent ran `git status` and `git log` without prompts, and had `git push --dry-run`, `gh pr comment`, and `echo hi > file` denied before execution with the guard's reason text. Some Claude Code builds do not expose Grep and Glob to subagents with an explicit `tools:` list; the reviewers then fall back to `grep`, `rg` and `find` through Bash, which the guard auto-allows.
+
+The guard is standard-library Python with a unit-test suite (`python3 hooks/test_readonly_guard.py`). Two environment variables tune it without editing code, as comma-separated globs matched against tool names or shell commands:
+
+```bash
+READONLY_GUARD_ALLOW="mcp__context7__*,mcp__mytracker__frobnicate"   # extra reads the guard cannot infer
+READONLY_GUARD_DENY="mcp__github__*"                                # deny wins over allow
+```
+
+If you copy the agents into a project's `.claude/agents/` instead of installing the plugin, the hook is not loaded automatically. Add it to that project's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{ "hooks": [{ "type": "command",
+      "command": "READONLY_GUARD_AGENTS='*-reviewer' python3 /path/to/agents/hooks/readonly-guard.py" }] }]
+  }
+}
+```
+
 ## Installation
 
 **Try it without installing** (loads for one session):
@@ -110,7 +140,7 @@ The merged report groups findings by severity with the verdict at the top. See `
 | Model for reviewers | `model:` in each `agents/*.md` | `inherit` (the session's model) |
 | Agent teams vs subagents | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in settings | auto-detected |
 
-Agents are deliberately read-only (`disallowedTools: Edit, Write, ...`). Keep that when customising them.
+Agents are deliberately read-only (`disallowedTools` plus the guard hook). Keep both when customising them.
 
 ## Layout
 
@@ -128,6 +158,10 @@ skills/review/
   references/
     reviewer-prompt.md   the brief sent to each reviewer
     report-template.md   the merged report format
+hooks/
+  hooks.json             registers the PreToolUse read-only guard
+  readonly-guard.py      the guard (stdlib Python)
+  test_readonly_guard.py unit tests for the guard
 .github/workflows/validate.yml
 ```
 
@@ -140,6 +174,12 @@ claude plugin validate --strict .                          # marketplace manifes
 claude plugin validate --strict .claude-plugin/plugin.json # plugin manifest
 claude plugin validate --strict agents
 claude plugin validate --strict skills
+```
+
+Run the guard's tests:
+
+```bash
+python3 hooks/test_readonly_guard.py
 ```
 
 Check the token cost of what the plugin loads into a session:

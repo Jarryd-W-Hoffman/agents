@@ -54,7 +54,8 @@ Build a **Review Packet** the reviewers can act on without guessing. Prefer comm
    - PR: `gh pr view <n> --json number,title,body,url,baseRefName,headRefName,headRefOid,files`. Fetch the head if needed (`git fetch origin <headRefName>`), then treat as branch/ref with base `origin/<baseRefName>`. Keep the PR title/body and any linked issues (`gh issue view <n> --json title,body`) for the completeness pass.
    - Paths: base `HEAD`, scope limited to the paths. Tell reviewers to read the full files, not only the diff.
 2. Collect: changed file list with `--stat`, total changed lines, and the list of relevant rule files: root `CLAUDE.md`, any `CLAUDE.md`, `AGENTS.md`, `.claude/rules/*.md` in or above the changed directories (`git ls-files '*CLAUDE.md' 'AGENTS.md' '.claude/rules/*.md'`), plus `CONTRIBUTING.md` and `SECURITY.md` if present. List paths only; the reviewers read them.
-3. Record the effective `--threshold` and `--passes`.
+3. Note which external context sources are available in this session and relevant to the target: an authenticated `gh` or `glab` CLI, and any MCP servers for GitHub, GitLab, Jira, Linear, Confluence, Notion, Sentry or similar. List them in the packet so reviewers use them (read-only) instead of guessing about tickets or prior review discussion. You may use the same sources yourself to fill in the change's intent.
+4. Record the effective `--threshold` and `--passes`.
 
 Stop here and tell the user if there is nothing to review (empty diff, PR closed or already merged, unknown ref).
 
@@ -96,6 +97,7 @@ If `--comment` was given and the target is a PR, post the report with `gh pr com
 ## Rules
 
 - **Read-only.** Never edit files, run builds, tests, formatters or type-checkers, and never check out a different ref in the user's working tree. If the user wants fixes, that is a separate follow-up after the report.
+- **Reviewers are read-only by enforcement, not just instruction.** The plugin's PreToolUse guard (`hooks/readonly-guard.py`) denies edits, state-changing shell commands and write-style MCP tools for the four reviewer agents, and auto-allows recognised reads. If a reviewer reports that something was denied, treat the gap as a Note, not a reason to do the write yourself. The only write this skill ever performs is the optional `--comment` post, done by you, the lead.
 - **Do not review yourself.** Your value is orchestration and synthesis; the passes are the reviewers.
 - **Do not paste large diffs into briefs.** Give commands.
 - **Do not soften or inflate.** Report the reviewers' verdicts as computed. If a pass failed to run or returned nothing usable, say so in the report under that pass rather than silently omitting it.

@@ -85,7 +85,8 @@ Restart Claude Code after installing. The agents appear in `/agents`; the skill 
 /four-pass-review:review src/billing/          # specific paths, read as whole files
 /four-pass-review:review --passes correctness,compliance
 /four-pass-review:review 142 --threshold 70 --no-verify
-/four-pass-review:review 142 --comment         # also post the report as one PR comment
+/four-pass-review:review 142 --comment         # also post it to the PR: one review, inline comment per finding
+/four-pass-review:review 142 --comment=summary # or as a single ordinary PR comment
 ```
 
 Individual agents can be invoked in plain language, and Claude will also delegate to them on its own when their description matches the request:
@@ -101,7 +102,7 @@ Run the correctness-reviewer against PR 142.
 2. **Launch the four reviewers in parallel.** With [agent teams](https://code.claude.com/docs/en/agent-teams) enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) the lead creates a team and gives each teammate one pass. Otherwise it spawns four subagents in a single message. Reviewers receive commands to reproduce the diff, not the diff itself, so large changes do not blow up their context.
 3. **Verify borderline findings.** Findings between the threshold and 89 confidence go to a lightweight verifier that re-derives them from the code. Refuted findings are dropped.
 4. **Merge.** Filter by threshold, deduplicate across passes (the owning pass keeps the finding), rank by severity then confidence, and compute the verdict: `FAIL` on any critical, `PASS_WITH_NOTES` on any other finding, else `PASS`.
-5. **Report** in a fixed format, and optionally post it to the PR.
+5. **Report** in a fixed format, and optionally post it to the PR. With `--comment` the lead runs `skills/review/scripts/post-review.py`, which creates one pull-request review (event `COMMENT`, so it never approves or blocks a merge) with an inline comment per finding anchored at its file and line on the head commit, and the verdict and pass summaries as the review body. Findings on lines GitHub cannot anchor (outside the diff) are listed in the body instead. The script dry-runs first, and it is the only write the skill ever performs.
 
 The skill is read-only. It never edits files, runs builds or tests, or checks out other refs. Fixing findings is a separate step you ask for afterwards.
 
@@ -158,6 +159,9 @@ skills/review/
   references/
     reviewer-prompt.md   the brief sent to each reviewer
     report-template.md   the merged report format
+  scripts/
+    post-review.py       posts the report to a PR as inline review comments
+    test_post_review.py  unit tests for the poster
 hooks/
   hooks.json             registers the PreToolUse read-only guard
   readonly-guard.py      the guard (stdlib Python)
@@ -176,10 +180,11 @@ claude plugin validate --strict agents
 claude plugin validate --strict skills
 ```
 
-Run the guard's tests:
+Run the tests:
 
 ```bash
 python3 hooks/test_readonly_guard.py
+python3 skills/review/scripts/test_post_review.py
 ```
 
 Check the token cost of what the plugin loads into a session:

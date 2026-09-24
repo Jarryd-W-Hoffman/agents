@@ -1,7 +1,7 @@
 ---
 name: review
 description: Four-pass code review. Runs four independent reviewer agents in parallel (completeness, correctness, compliance, consistency) against the same change, verifies borderline findings, and merges everything into one ranked report. Use when the user asks for a code review, PR review, pre-merge check, or "four-pass review" of the working tree, a branch, a PR number, or specific paths. Read-only; it never edits files or posts anywhere unless asked with --comment.
-argument-hint: "[target] [--passes completeness,correctness,compliance,consistency] [--threshold 80] [--no-verify] [--comment]"
+argument-hint: "[target] [--passes completeness,correctness,compliance,consistency] [--threshold 80] [--no-verify] [--comment | --comment=summary]"
 allowed-tools: Agent, Read, Grep, Glob, Bash(git *), Bash(gh pr view *), Bash(gh pr diff *), Bash(gh issue view *)
 ---
 
@@ -33,7 +33,8 @@ Arguments received: `$ARGUMENTS`
 | `--passes a,b` | Run only the named passes (default: all four). |
 | `--threshold N` | Minimum confidence to report (default 80). |
 | `--no-verify` | Skip the verification step for borderline findings. |
-| `--comment` | After the report, post it as a single PR comment. Requires a PR target. |
+| `--comment` | After the report, post it to the PR as one review with an inline comment per finding at its file and line. Requires a PR target. |
+| `--comment=summary` | Post the report as a single ordinary PR comment instead of inline comments. |
 
 ## Session context (collected at launch)
 
@@ -92,7 +93,20 @@ Drop `REFUTED` findings. Replace confidence with the verifier's number for `CONF
 
 Write the report using `${CLAUDE_SKILL_DIR}/references/report-template.md` exactly. Keep it terse: findings first, one line of summary per pass, no praise section unless the user asks. Every finding keeps its original ID (`CMP-`, `COR-`, `CPL-`, `CNS-`) so the user can ask about it by name.
 
-If `--comment` was given and the target is a PR, post the report with `gh pr comment <n> --body-file <tempfile>`. Do not post otherwise. Do not post if the verdict could not be computed.
+If `--comment` was given and the target is a PR, post it with the helper script, which creates one pull-request review (event `COMMENT`, never approve or request-changes) with an inline comment per finding and the summary as the review body:
+
+1. Write `findings.json`: a list with one object per finding, fields `id`, `title`, `severity`, `confidence`, `pass`, `path` (repo-relative), `line` (in the head version), optional `end_line`, `body` (the "why it matters" sentence plus key evidence), `fix`. Use a finding's first location if it has several; mention the others in `body`.
+2. Write `summary.md`: the report's header block and the "Pass summaries" section only (no findings; they become the inline comments).
+3. Dry-run first, then post:
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/post-review.py" --pr <n> --findings findings.json --summary summary.md --dry-run
+python3 "${CLAUDE_SKILL_DIR}/scripts/post-review.py" --pr <n> --findings findings.json --summary summary.md
+```
+
+The script parses the PR diff and anchors each finding to its line on the head commit. GitHub can only anchor lines that appear in the diff, so findings on other lines are listed in the review body under "Findings outside the diff"; the dry run shows which. With `--comment=summary`, pass `--mode summary` to post one ordinary comment instead. Tell the user the review URL the script prints.
+
+Do not post otherwise. Do not post if the verdict could not be computed or the PR is not open.
 
 ## Rules
 

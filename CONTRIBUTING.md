@@ -60,6 +60,7 @@ claude plugin validate --strict .claude-plugin/plugin.json
 claude plugin validate --strict agents
 claude plugin validate --strict skills
 python3 hooks/test_readonly_guard.py
+python3 skills/review/scripts/test_post_review.py
 ```
 
 Then load the plugin in a session and confirm the agents and skill appear:

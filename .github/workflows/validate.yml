@@ -25,3 +25,5 @@ jobs:
         run: claude plugin validate --strict skills
       - name: Test read-only guard
         run: python3 hooks/test_readonly_guard.py
+      - name: Test PR review poster
+        run: python3 skills/review/scripts/test_post_review.py

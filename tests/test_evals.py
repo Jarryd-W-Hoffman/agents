@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Checks on the eval suite itself. Free and deterministic; no model runs.
 
-The scored suite costs about $0.80 a run and is non-deterministic, so it is not
-in CI. These are the parts that can be checked for nothing, and one of them
+The scored suite uses about $0.80 a run in API-equivalent tokens and is
+non-deterministic, so it is not in CI. These are the parts that can be checked for nothing, and one of them
 matters more than it looks:
 
 `build_prompts.py` strips `EVAL:` comment lines, which are where a fixture

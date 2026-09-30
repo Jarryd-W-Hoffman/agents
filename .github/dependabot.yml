@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # The only dependency this repo has is its GitHub Actions.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

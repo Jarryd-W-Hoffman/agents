@@ -1,0 +1,15 @@
+name: Idea
+description: A pass, a check, or a change to how the review works.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like it to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What review did it miss, or get wrong?
+      description: A concrete example is worth more than a general description.

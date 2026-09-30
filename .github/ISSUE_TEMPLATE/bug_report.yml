@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in the plugin does not behave as documented.
+labels: [bug]
+body:
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`.
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: Output of `python3 --version`. The guard hook runs under it.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: macOS 15.6 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - review skill (orchestration, merge, report)
+        - completeness-reviewer
+        - correctness-reviewer
+        - compliance-reviewer
+        - consistency-reviewer
+        - read-only guard hook
+        - post-review.py (--comment)
+        - installation / manifests
+        - not sure
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: denial
+    attributes:
+      label: Guard denial text, if a denial is involved
+      description: >-
+        The message starting "read-only reviewer: ...". If the guard denied
+        something it should have allowed, this is the most useful thing to paste.
+      render: text

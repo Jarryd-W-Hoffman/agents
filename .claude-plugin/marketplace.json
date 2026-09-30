@@ -4,14 +4,15 @@
   "description": "Reusable Claude Code agents and skills",
   "owner": {
     "name": "Jarryd Hoffman",
-    "email": "jarrydh@trilogycare.com.au"
+    "email": "jarryd.hoffman@windowslive.com"
   },
   "plugins": [
     {
       "name": "four-pass-review",
       "description": "Four-pass code review: completeness, correctness, compliance and consistency reviewer agents run in parallel, then merged into one ranked report",
       "source": "./",
-      "category": "productivity"
+      "category": "productivity",
+      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     }
   ]
 }

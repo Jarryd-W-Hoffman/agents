@@ -1,11 +1,19 @@
 {
   "name": "four-pass-review",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Four-pass code review: independent completeness, correctness, compliance and consistency reviewer agents run in parallel, then merged into one ranked report",
   "author": {
     "name": "Jarryd Hoffman",
-    "email": "jarrydh@trilogycare.com.au"
+    "email": "jarryd.hoffman@windowslive.com"
   },
-  "keywords": ["code-review", "pull-request", "agents", "quality", "compliance"],
+  "homepage": "https://github.com/Jarryd-W-Hoffman/agents",
+  "repository": "https://github.com/Jarryd-W-Hoffman/agents",
+  "keywords": [
+    "code-review",
+    "pull-request",
+    "agents",
+    "quality",
+    "compliance"
+  ],
   "license": "MIT"
 }

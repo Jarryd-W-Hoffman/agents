@@ -13,6 +13,13 @@
       "source": "./plugins/four-pass-review",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+    },
+    {
+      "name": "test-gap-writer",
+      "description": "Turns code-review findings into tests: one test-writer agent per finding writes the smallest test that proves it, runs it, and reports whether it reproduced the defect. A hook confines the writer to test files",
+      "source": "./plugins/test-gap-writer",
+      "category": "testing",
+      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     }
   ]
 }

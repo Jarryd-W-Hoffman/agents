@@ -5,6 +5,7 @@ Claude Code plugins, installable from this repository as a local marketplace. Ea
 | Plugin | What it does | Docs |
 |---|---|---|
 | `four-pass-review` | Reviews a change in four independent passes (completeness, correctness, compliance, consistency) run in parallel by read-only agents, and merges the results into one ranked report. Can post it to a PR. | [README](plugins/four-pass-review/README.md) · [CHANGELOG](plugins/four-pass-review/CHANGELOG.md) |
+| `test-gap-writer` | Turns review findings into tests. One writer agent per finding writes the smallest test that proves it, runs it, and reports whether it reproduced the defect. A hook confines the writer to test files. | [README](plugins/test-gap-writer/README.md) · [CHANGELOG](plugins/test-gap-writer/CHANGELOG.md) |
 
 ## Installation
 
@@ -13,6 +14,7 @@ Add the repository as a marketplace once, then install whichever plugins you wan
 ```text
 /plugin marketplace add /path/to/agents
 /plugin install four-pass-review@jarrydh-agents
+/plugin install test-gap-writer@jarrydh-agents
 ```
 
 To try a plugin for one session without installing it:
@@ -30,6 +32,7 @@ Each plugin's README covers its usage and how to copy its pieces into a project 
   marketplace.json       lists every plugin under plugins/
 plugins/
   four-pass-review/      one directory per plugin; see its README
+  test-gap-writer/
 scripts/
   check.sh               every check CI runs, for every plugin or one
 SECURITY.md              reporting process and the threat model of the guards

@@ -1,0 +1,16 @@
+{
+  "description": "Keeps the test-writer agent inside the test tree. While a *test-writer agent from this plugin is running, denies file edits outside recognised test paths, shell commands other than reads and known test runners, output redirects to files, and every MCP tool, so the agent can add and run tests but cannot touch production source. No effect on other agents or the main session.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TEST_SCOPE_GUARD_AGENTS='*test-writer' python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/test-scope-guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

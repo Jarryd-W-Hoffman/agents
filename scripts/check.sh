@@ -77,8 +77,12 @@ plugin_tests() {
     case "$t" in *_integration.py) continue ;; esac
     run "$PYTHON" "$t"
   done
+  # Each guard hook carries a --selftest that checks its scoping end to end.
   if [ -f hooks/readonly-guard.py ]; then
     run env READONLY_GUARD_AGENTS='*-reviewer' "$PYTHON" hooks/readonly-guard.py --selftest
+  fi
+  if [ -f hooks/test-scope-guard.py ]; then
+    run env TEST_SCOPE_GUARD_AGENTS='*test-writer' "$PYTHON" hooks/test-scope-guard.py --selftest
   fi
 }
 

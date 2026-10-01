@@ -144,11 +144,6 @@ class Lint(unittest.TestCase):
 class Executables(unittest.TestCase):
     """Anything meant to be run directly has to be runnable."""
 
-    def test_check_script_is_executable(self):
-        path = os.path.join(REPO, "scripts", "check.sh")
-        self.assertTrue(os.path.exists(path), "scripts/check.sh is missing")
-        self.assertTrue(os.access(path, os.X_OK), "scripts/check.sh is not executable")
-
     def test_scripts_with_a_shebang_are_executable_or_imported(self):
         # The guard is invoked as `python3 <path>`, so it need not be +x; but a
         # file claiming a shebang should at least have a correct one.

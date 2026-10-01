@@ -7,6 +7,8 @@ cases here exist to catch the plugin crying wolf.
 
 ## Running it
 
+Every command below runs from the plugin directory, `plugins/four-pass-review/`; the trailing `.` is the plugin to evaluate.
+
 The dollar figures throughout are API-price equivalents of the tokens a run
 uses, not charges — see **What it costs** for what that means on a
 subscription versus an API key.

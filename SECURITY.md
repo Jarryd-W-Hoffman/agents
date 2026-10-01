@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Report privately through this repository's [security advisories](https://github.com/Jarryd-W-Hoffman/agents/security/advisories/new). If that is not available to you, email jarryd.hoffman@windowslive.com.
+Report privately through this repository's [security advisories](https://github.com/Jarryd-W-Hoffman/agents/security/advisories/new).
 
 Please do not open a public issue for a vulnerability. Include what you did, what happened, and the version of the plugin and of Claude Code. If the report is about the read-only guard, the exact command or tool name that got through is the useful part.
 

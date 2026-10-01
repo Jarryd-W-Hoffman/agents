@@ -7,8 +7,12 @@ cases here exist to catch the plugin crying wolf.
 
 ## Running it
 
+The dollar figures throughout are API-price equivalents of the tokens a run
+uses, not charges — see **What it costs** for what that means on a
+subscription versus an API key.
+
 ```bash
-# one case, one run -- what you want while iterating (~$1.40)
+# one case, one run -- what you want while iterating (~$1.40 API-equivalent)
 claude plugin eval --allow-tools Bash --ablation none --runs 1 \
   --case 'precision-guarded-null' .
 
@@ -27,10 +31,23 @@ has nothing to do with review quality.
 
 ## What it costs
 
+**Every dollar figure in this file is an API-price equivalent, not a bill.**
+The eval CLI counts the tokens each run used and prices them at Anthropic's
+published API rates; that is the number it prints and the number quoted here.
+What it turns into depends on how you are signed in:
+
+- **Subscription login** (Pro/Max, the default for Claude Code): the runs draw
+  on your plan's usage allowance, the same as an interactive session. No charge
+  appears; the figure tells you roughly how much of that allowance a run
+  consumes.
+- **API key** (`ANTHROPIC_API_KEY`, or Bedrock/Vertex): the figure is what you
+  will actually be billed.
+
 Read this before running the suite. Each run is a full Claude session on your
 own credential, and a run of this plugin is not cheap: the review spawns four
-reviewer subagents and then verifiers, so a single run measures around
-**$1.20 to $1.50, and 3-4 minutes**. Measured, not estimated.
+reviewer subagents and then verifiers, so a single run comes to around
+**$1.20 to $1.50 of API-equivalent usage, and 3-4 minutes**. Token counts are
+measured; the dollar figure is those tokens at API list price.
 
 The defaults multiply that hard. `claude plugin eval` with no arguments is
 7 cases x 3 runs x 2 ablation arms = **42 sessions, roughly $55**. That is
@@ -38,7 +55,7 @@ almost never what you want.
 
 Sensible shapes:
 
-| Command | Runs | Rough cost |
+| Command | Runs | API-equivalent |
 |---|---|---|
 | `--case <one> --runs 1 --ablation none` | 1 | ~$1.40 |
 | `--runs 1 --ablation none` (whole suite, one pass) | 7 | ~$10 |
@@ -71,7 +88,7 @@ Useful flags:
 | `--ablation with-without` | Also runs a no-plugin baseline arm and reports the delta, which is what tells you the plugin is doing the work rather than the base model. |
 | `--ablation none` | Skips the baseline arm. Halves the cost while iterating. |
 | `-j 4` | Up to 4 runs at once. They share one rate limit. |
-| `--max-cost-usd N` | Hard ceiling, checked before each run launches. Set it above the cost of one run (~$1.40) or the grader is skipped mid-run and the case reports 0. |
+| `--max-cost-usd N` | Hard ceiling on API-equivalent spend, checked before each run launches. Set it above the cost of one run (~$1.40) or the grader is skipped mid-run and the case reports 0. |
 | `--threshold 0.8` | Exit 1 if any case scores below this. Default is 1.0. |
 
 Results land in `evals/results/<timestamp>/` (git-ignored) with an
@@ -80,7 +97,7 @@ Results land in `evals/results/<timestamp>/` (git-ignored) with an
 ## Baseline
 
 Plugin 0.2.0, Claude Code 2.1.277, 2026-09-30, `--runs 3 --ablation none`:
-**$23.16 over 96 minutes**, 21 runs.
+**$23.16 API-equivalent over 96 minutes**, 21 runs.
 
 | Case | Score | Pass rate |
 |---|---|---|

@@ -281,7 +281,8 @@ claude plugin eval --allow-tools Bash --ablation none --runs 1 .
 
 Each run spawns the four reviewers for real, so the suite costs real money:
 about $1.40 per run, ~$10 for that command, and ~$55 if you run it with no
-flags. It is also non-deterministic, so it is not in CI. Read
+flags — all API-price equivalents of the tokens used, which on a subscription
+login draw on your plan's allowance rather than producing a bill. It is also non-deterministic, so it is not in CI. Read
 [evals/README.md](evals/README.md) before running it.
 
 When editing an agent, keep the shared sections (out-of-scope list, false-positive list, confidence rubric, output format) identical across all four files; the skill's merge step depends on them.

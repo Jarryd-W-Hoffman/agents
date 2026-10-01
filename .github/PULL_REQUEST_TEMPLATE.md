@@ -5,6 +5,6 @@
 ## Checklist
 
 - [ ] `./scripts/check.sh` passes
-- [ ] Entry added under `[Unreleased]` in `CHANGELOG.md`
+- [ ] Entry added under `[Unreleased]` in the affected plugin's `CHANGELOG.md`
 - [ ] If an agent changed: the shared sections are still identical across all four
 - [ ] If the guard changed: a test was added for every new allow or deny case

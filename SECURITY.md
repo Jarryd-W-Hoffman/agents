@@ -8,11 +8,13 @@ Please do not open a public issue for a vulnerability. Include what you did, wha
 
 ## Supported versions
 
-This is a 0.x plugin. Only the latest release is supported; fixes go into the next release rather than being backported.
+Every plugin here is 0.x and versioned on its own. Only the latest release of each is supported; fixes go into the next release rather than being backported.
 
 ## What the read-only guard is for
 
-`hooks/readonly-guard.py` is a PreToolUse hook that keeps the four reviewer agents read-only. It denies file edits, state-changing shell commands and write-style MCP tools, auto-allows recognised reads so reviews do not stall on permission prompts, and fails closed: anything it cannot classify is denied with a reason.
+This repository ships Claude Code plugins under `plugins/`. The notes below cover the read-only guard in `four-pass-review`; a plugin that adds its own guard documents it in its own README.
+
+`plugins/four-pass-review/hooks/readonly-guard.py` is a PreToolUse hook that keeps the four reviewer agents read-only. It denies file edits, state-changing shell commands and write-style MCP tools, auto-allows recognised reads so reviews do not stall on permission prompts, and fails closed: anything it cannot classify is denied with a reason.
 
 **It is defence in depth against a well-intentioned model making a mistake. It is not a sandbox.**
 

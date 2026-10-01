@@ -7,7 +7,7 @@ Thumbs.db
 
 # Claude Code local state
 .claude/settings.local.json
-evals/results/
+plugins/*/evals/results/
 
 # Node (if tooling is added later)
 node_modules/

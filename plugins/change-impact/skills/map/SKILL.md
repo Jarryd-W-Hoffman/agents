@@ -24,17 +24,24 @@ Arguments received: `$ARGUMENTS`
 | `feature/x`, `abc123`, `main...HEAD` | A ref or ref range; a single ref means `<default-branch>...<ref>`. |
 | `--quick` | The map from the script alone: direct references by name, unverified. No agent. |
 
-## Session context (collected at launch)
+## Repository state
 
-Branch: !`git rev-parse --abbrev-ref HEAD`
-Default branch: !`git branch --remotes --list origin/HEAD`
-Working tree: !`git status --short`
-
-The default branch line reads like `origin/HEAD -> origin/main`; the name after the arrow, without `origin/`, is the default branch. If that line is empty, assume `main`. If the branch line is empty, this is not a git repository: say so and stop.
+There is no launch-time preamble on purpose. A shell command run at launch, the exclamation-mark-and-backtick form, stops the whole skill from loading if it fails, and then the model carries on without these instructions: `git rev-parse HEAD` fails in a repository with no commits, and every git command fails outside a repository. So the lead reads the state itself, in Step 1, where a failure is visible and handled.
 
 ## Procedure
 
 ### Step 1 — Resolve the target
+
+First read the repository state:
+
+```bash
+git rev-parse --show-toplevel           # fails outside a repository: say so and stop
+git branch --show-current               # the current branch; empty on a detached HEAD
+git symbolic-ref --short refs/remotes/origin/HEAD   # the default branch as origin/<name>; if it fails, assume main
+git status --short                      # the working tree
+```
+
+If `git rev-parse --verify --quiet HEAD` prints nothing, the repository has no commits yet: every file is new, so take the base as the empty tree (`git hash-object -t tree /dev/null`) and the head as the working tree.
 
 - Working tree: base `HEAD`, head = working tree.
 - Branch or ref: base = `git merge-base <default-branch> <ref>`, head = `<ref>`.

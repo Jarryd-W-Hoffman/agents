@@ -141,12 +141,12 @@ class Skill(unittest.TestCase):
             if t.startswith("Bash("):
                 self.assertRegex(t, r"^Bash\([^)]+:\*\)$", t)
 
-    def test_preamble_commands_are_plain_git(self):
-        for line in re.findall(r"!`([^`]*)`", self.text):
-            self.assertTrue(line.startswith("git "), line)
-            for bad in ("|", "2>", "&&", ";"):
-                self.assertNotIn(bad, line, line)
-
+    def test_no_launch_time_preamble(self):
+        # A failing `!` command stops the skill loading, and the model carries
+        # on without it. Measured: `git rev-parse --abbrev-ref HEAD` failed in a
+        # repository with no commits and every eval run lost the skill.
+        self.assertEqual(re.findall(r"!`[^`]*`", self.text), [])
+        self.assertIn("git rev-parse --show-toplevel", self.text)
     def test_references_exist(self):
         for rel in re.findall(r"\$\{CLAUDE_SKILL_DIR\}/([\w./-]+)", self.text):
             self.assertTrue(os.path.exists(os.path.join(SKILL_DIR, rel)), rel)

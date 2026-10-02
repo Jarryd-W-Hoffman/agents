@@ -82,8 +82,13 @@ plugin_tests() {
     run "$PYTHON" "$t"
   done
   # Each guard hook carries a --selftest that checks its scoping end to end.
+  # Use the scope the plugin actually registers, from its hooks.json, so the
+  # selftest checks this plugin's wiring rather than a scope it never uses.
   if [ -f hooks/readonly-guard.py ]; then
-    run env READONLY_GUARD_AGENTS='*-reviewer' "$PYTHON" hooks/readonly-guard.py --selftest
+    scope=$("$PYTHON" -c 'import json, re
+c = json.load(open("hooks/hooks.json"))["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+print(re.search(r"READONLY_GUARD_AGENTS='"'"'([^'"'"']*)'"'"'", c).group(1))')
+    run env READONLY_GUARD_AGENTS="$scope" "$PYTHON" hooks/readonly-guard.py --selftest
   fi
   if [ -f hooks/test-scope-guard.py ]; then
     run env TEST_SCOPE_GUARD_AGENTS='*test-writer' "$PYTHON" hooks/test-scope-guard.py --selftest

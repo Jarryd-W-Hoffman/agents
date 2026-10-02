@@ -1,0 +1,16 @@
+{
+  "description": "Keeps the impact-analyst agent strictly read-only. While it is running, denies file edits, state-changing shell commands and write-style MCP tools, and auto-allows recognised read operations so the analysis does not stall on permission prompts. No effect on other agents or the main session.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "READONLY_GUARD_AGENTS='*impact-analyst' python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/readonly-guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

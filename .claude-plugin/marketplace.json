@@ -27,6 +27,13 @@
       "source": "./plugins/migration-safety",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+    },
+    {
+      "name": "change-impact",
+      "description": "Maps what a change touches and what reaches it: callers, routes, scheduled tasks, queued jobs, event listeners, tests that reach it and changed code none do, data and contracts. Facts, not a review. Launches nothing when only docs or tests changed",
+      "source": "./plugins/change-impact",
+      "category": "productivity",
+      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     }
   ]
 }

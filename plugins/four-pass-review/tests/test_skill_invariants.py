@@ -87,7 +87,7 @@ class AllowedTools(Contains):
     def test_no_write_tools_beyond_write(self):
         for tool in ("Edit", "MultiEdit", "NotebookEdit"):
             self.assertNotIn(tool, self.allowed,
-                             f"the skill is read-only apart from its two temp files; {tool} is not needed")
+                             f"the skill is read-only apart from its temp files; {tool} is not needed")
 
 
 class RuleBase(Contains):
@@ -172,6 +172,36 @@ class IncrementalHonesty(Contains):
     def test_skill_says_to_mark_it(self):
         self.assert_contains(read(SKILL).lower(), "incremental", "SKILL.md",
                              "an incremental PASS is not a verdict on the whole change")
+
+
+class FindingContract(Contains):
+    """Other plugins read findings.json, not the report. It must always be written, and valid."""
+
+    def setUp(self):
+        self.skill = read(SKILL)
+        self.scripts = os.path.join(REPO, "skills", "review", "scripts")
+
+    def test_contract_files_ship_with_the_skill(self):
+        for name in ("finding.schema.json", "finding_contract.py"):
+            self.assertTrue(os.path.isfile(os.path.join(self.scripts, name)),
+                            f"scripts/{name} is missing; run scripts/sync-shared.py --write")
+
+    def test_findings_json_is_written_on_every_run(self):
+        why = ("test-gap-writer reads findings.json; written only under --comment, "
+               "it is missing exactly when the user wants tests and not a PR post")
+        self.assert_contains(self.skill, "on every run", "SKILL.md", why)
+        step5 = self.skill[self.skill.index("### Step 5"):]
+        self.assertLess(step5.index("findings.json"), step5.index("If `--comment` was given"),
+                        "findings.json must be written before, not inside, the --comment branch")
+
+    def test_findings_json_is_validated(self):
+        self.assert_contains(self.skill, 'scripts/finding_contract.py" <dir>/findings.json',
+                             "SKILL.md", "an unvalidated file is the drift this contract exists to stop")
+
+    def test_poster_validates_before_posting(self):
+        poster = read(os.path.join(self.scripts, "post-review.py"))
+        self.assert_contains(poster, "validate_findings(findings)", "post-review.py",
+                             "a malformed finding would post as a broken public comment")
 
 
 if __name__ == "__main__":

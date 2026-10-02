@@ -189,6 +189,29 @@ class SkillBody(unittest.TestCase):
         self.assertIn("Source files touched", self.text)
 
 
+class FindingContract(unittest.TestCase):
+    """Findings JSON is checked against the contract, and preferred over parsing a report."""
+
+    def setUp(self):
+        self.text = read(SKILL)
+
+    def test_contract_files_ship_with_the_skill(self):
+        for name in ("finding.schema.json", "finding_contract.py"):
+            self.assertTrue(os.path.isfile(os.path.join(SKILL_DIR, "scripts", name)),
+                            f"scripts/{name} is missing; run scripts/sync-shared.py --write")
+
+    def test_findings_json_is_validated(self):
+        self.assertIn('scripts/finding_contract.py" <findings.json>', self.text)
+
+    def test_sibling_findings_json_is_preferred_over_parsing(self):
+        # The report's layout belongs to four-pass-review and may change; the
+        # contract may not. Parsing is the fallback.
+        self.assertIn("findings.json` sits in the same directory", self.text)
+
+    def test_invalid_input_is_refused_not_repaired(self):
+        self.assertIn("Do not repair the file yourself", self.text)
+
+
 class ReportTemplate(unittest.TestCase):
     def test_table_has_the_merge_columns(self):
         text = read(os.path.join(SKILL_DIR, "references", "report-template.md"))

@@ -2,7 +2,7 @@
 
 A Claude Code plugin that turns code-review findings into tests. For each finding, a `test-writer` agent writes the smallest test that proves it, in the repository's own test conventions, runs that file, and reports what the result means. A hook confines the writer to test files, so it cannot "fix" the code to make its test pass.
 
-It pairs with [four-pass-review](../four-pass-review/README.md), whose report it reads directly, but any finding in the shared JSON shape works, and so does a one-line request.
+It pairs with [four-pass-review](../four-pass-review/README.md), reading the `findings.json` it saves beside every report, but any findings list in the repository's [finding contract](../../shared/finding-contract/README.md) works, and so does a one-line request.
 
 ## What it is for
 
@@ -50,7 +50,7 @@ Restart Claude Code after installing. The agent appears in `/agents`; the skill 
 /test-gap-writer:write-tests review.md                     # every correctness and completeness finding in a four-pass report
 /test-gap-writer:write-tests review.md --only COR-1,CMP-2  # just those
 /test-gap-writer:write-tests review.md --all-passes        # include compliance and consistency findings too
-/test-gap-writer:write-tests findings.json --max 4         # the JSON shape four-pass-review posts with
+/test-gap-writer:write-tests findings.json --max 4         # the finding contract four-pass-review saves on every run
 /test-gap-writer:write-tests "export_row crashes when invoice.customer is None, billing/exporter.py:7"
 /test-gap-writer:write-tests review.md --runner "npm run test:unit"
 ```
@@ -142,7 +142,10 @@ skills/write-tests/
     writer-brief.md        the brief sent to each writer
     report-template.md     the merged report format
   scripts/
-    extract-findings.py    parses a four-pass report into findings JSON
+    extract-findings.py    parses a four-pass report into findings JSON (the fallback
+                           when no findings.json sits beside the report)
+    finding.schema.json    the finding contract findings JSON must follow
+    finding_contract.py    its validator; both are copies of shared/finding-contract/
 hooks/
   hooks.json               registers the PreToolUse write-scope guard
   test-scope-guard.py      the guard: path rules, runner allow-list, --selftest

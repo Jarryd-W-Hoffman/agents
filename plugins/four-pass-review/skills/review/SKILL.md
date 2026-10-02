@@ -115,9 +115,22 @@ Drop `REFUTED` findings. Replace confidence with the verifier's number for `CONF
 
 Write the report using `${CLAUDE_SKILL_DIR}/references/report-template.md` exactly. Keep it terse: findings first, one line of summary per pass, no praise section unless the user asks. Every finding keeps its original ID (`CMP-`, `COR-`, `CPL-`, `CNS-`) so the user can ask about it by name.
 
+Then save the result as two files, on every run, in a temporary directory outside the repository (your scratchpad directory if one is listed in your system prompt, otherwise `mktemp -d`), never in the working tree:
+
+1. `report.md`: the report exactly as you showed it.
+2. `findings.json`: the same findings in the **finding contract**, defined by `${CLAUDE_SKILL_DIR}/scripts/finding.schema.json`. A list with one object per reported finding, fields `id`, `title`, `severity`, `confidence`, `pass`, `path` (repo-relative), `line` (in the head version), `body` (the "why it matters" sentence plus key evidence), and optionally `end_line`, `side` (`LEFT` only for a finding about deleted code, in which case `line` is the base-version number), `fix`, `suggestion`. Use a finding's first location if it has several; mention the others in `body`. No other fields. With no findings, write `[]`.
+
+Validate it before saying anything about it:
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/finding_contract.py" <dir>/findings.json
+```
+
+If it reports errors, fix the file and validate again; the errors name the finding and the field. End your reply with one line giving both paths, and that `findings.json` is what `/test-gap-writer:write-tests` takes. Other tools read this file rather than parsing the report, which is free to change shape; the contract is not.
+
 If `--comment` was given and the target is a PR, post it with the helper script, which creates one pull-request review carrying the summary as its body, an inline comment per finding, and the event the verdict implies:
 
-1. Write `findings.json` in a temporary directory outside the repository (your scratchpad directory if one is listed in your system prompt, otherwise `mktemp -d`), never in the working tree: a list with one object per finding, fields `id`, `title`, `severity`, `confidence`, `pass`, `path` (repo-relative), `line` (in the head version), optional `end_line`, optional `side` (`LEFT` only for a finding about deleted code, in which case `line` is the base-version number), `body` (the "why it matters" sentence plus key evidence), `fix`. Use a finding's first location if it has several; mention the others in `body`.
+1. Use the `findings.json` you just validated. The script validates it again and refuses to post one that breaks the contract.
 2. Write `summary.md` in the same directory: the report's header block and the "Pass summaries" section only (no findings; they become the inline comments).
 3. Dry-run first, then post:
 
@@ -138,8 +151,8 @@ Do not post otherwise. Do not post if the verdict could not be computed or the P
 
 ## Rules
 
-- **Read-only.** Never edit files in the repository, run builds, tests, formatters or type-checkers, and never check out a different ref in the user's working tree. The two temporary files for `--comment` live outside the working tree; `Write` is in this skill's `allowed-tools` for those two files and nothing else. If the user wants fixes, that is a separate follow-up after the report.
-- **Reviewers are read-only by enforcement, not just instruction.** The plugin's PreToolUse guard (`hooks/readonly-guard.py`) denies edits, state-changing shell commands and write-style MCP tools for the four reviewer agents, and auto-allows recognised reads. If a reviewer reports that something was denied, treat the gap as a Note, not a reason to do the write yourself. The only write this skill ever performs is the optional `--comment` post, done by you, the lead.
+- **Read-only.** Never edit files in the repository, run builds, tests, formatters or type-checkers, and never check out a different ref in the user's working tree. The temporary files (`report.md`, `findings.json`, and `summary.md` for `--comment`) live outside the working tree; `Write` is in this skill's `allowed-tools` for those files and nothing else. If the user wants fixes, that is a separate follow-up after the report.
+- **Reviewers are read-only by enforcement, not just instruction.** The plugin's PreToolUse guard (`hooks/readonly-guard.py`) denies edits, state-changing shell commands and write-style MCP tools for the four reviewer agents, and auto-allows recognised reads. If a reviewer reports that something was denied, treat the gap as a Note, not a reason to do the write yourself. The only write this skill ever performs outside its temporary directory is the optional `--comment` post, done by you, the lead.
 - **Do not review yourself.** Your value is orchestration and synthesis; the passes are the reviewers.
 - **Do not paste large diffs into briefs.** Give commands.
 - **Do not soften or inflate.** Report the reviewers' verdicts as computed. If a pass failed to run or returned nothing usable, say so in the report under that pass rather than silently omitting it.

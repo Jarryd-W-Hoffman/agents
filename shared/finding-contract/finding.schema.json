@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jarryd-W-Hoffman/agents/shared/finding-contract/finding.v1.schema.json",
+  "title": "Findings list, contract v1",
+  "description": "What a plugin in this repository writes as findings.json and what any plugin reading findings accepts. A list of findings, one object per finding. Canonical copy: shared/finding-contract/ at the repository root. Every plugin carries an identical copy beside finding_contract.py; scripts/sync-shared.py keeps them in step. Adding an optional field is a v1 change; removing a field, making one required or narrowing a type is v2.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "title", "severity", "confidence", "pass", "path", "line", "body"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[A-Z]+-[0-9]+$",
+        "description": "Pass prefix and a number, unique within the list: COR-1, CMP-2, CPL-3, CNS-4, MIG-1, ADHOC-1."
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "One line naming the defect."
+      },
+      "severity": {
+        "type": "string",
+        "enum": ["critical", "major", "minor"]
+      },
+      "confidence": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "pass": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$",
+        "description": "Which reviewer produced it, lower-case: completeness, correctness, compliance, consistency, migration-safety, adhoc. Open-ended so a new plugin can add a pass without a contract change."
+      },
+      "path": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?![/\\\\])(?![A-Za-z]:)(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$)).+$",
+        "description": "Repository-relative path. Not absolute, and no '..' segment."
+      },
+      "line": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Line in the head version, or in the base version when side is LEFT."
+      },
+      "end_line": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Last line of a multi-line range, inclusive. Not less than line."
+      },
+      "side": {
+        "type": "string",
+        "enum": ["LEFT", "RIGHT"],
+        "description": "LEFT for a finding about deleted code, in which case line is a base-version line. Omitted means RIGHT."
+      },
+      "body": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Why it matters, plus the key evidence."
+      },
+      "fix": {
+        "type": "string",
+        "description": "A concrete, minimal suggestion in words."
+      },
+      "suggestion": {
+        "type": "string",
+        "description": "Literal replacement text for exactly the anchored lines, for a GitHub suggestion block."
+      }
+    }
+  }
+}

@@ -49,7 +49,7 @@ Restart Claude Code after installing. The agent appears in `/agents`; the skill 
 ```text
 /test-gap-writer:write-tests review.md                     # every correctness and completeness finding in a four-pass report
 /test-gap-writer:write-tests review.md --only COR-1,CMP-2  # just those
-/test-gap-writer:write-tests review.md --all-passes        # include compliance and consistency findings too
+/test-gap-writer:write-tests review.md --all-passes        # include every other pass too (compliance, consistency, migration-safety, ...)
 /test-gap-writer:write-tests findings.json --max 4         # the finding contract four-pass-review saves on every run
 /test-gap-writer:write-tests "export_row crashes when invoice.customer is None, billing/exporter.py:7"
 /test-gap-writer:write-tests review.md --runner "npm run test:unit"

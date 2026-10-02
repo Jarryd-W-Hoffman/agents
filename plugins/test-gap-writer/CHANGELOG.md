@@ -10,6 +10,7 @@ and this plugin adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 - **Findings JSON is validated against the finding contract** (`skills/write-tests/scripts/finding.schema.json`, checked by `finding_contract.py`) instead of checking for `id`, `path` and `line` by eye. An invalid file is refused with its errors, not repaired.
 - **Given a report, the skill uses the `findings.json` saved beside it** when there is one, which four-pass-review now does on every run, and reads the report only for its header. Parsing the markdown is the fallback, because the report's layout belongs to another plugin and may change.
+- **Default selection is an allow-list**: without `--all-passes`, only `correctness`, `completeness` and `adhoc` findings are selected. It used to drop compliance and consistency by name, which would have selected any new plugin's pass, such as `migration-safety`, by default.
 - `extract-findings.py` validates what it parsed against the contract and exits 1 when it breaks it. It parses hyphenated pass names (`migration-safety`), and a finding heading with no body takes its title as the body, which the contract requires.
 
 ### Added

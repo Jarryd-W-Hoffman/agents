@@ -6,6 +6,7 @@ Claude Code plugins, installable from this repository as a local marketplace. Ea
 |---|---|---|
 | `four-pass-review` | Reviews a change in four independent passes (completeness, correctness, compliance, consistency) run in parallel by read-only agents, and merges the results into one ranked report. Can post it to a PR. | [README](plugins/four-pass-review/README.md) · [CHANGELOG](plugins/four-pass-review/CHANGELOG.md) |
 | `test-gap-writer` | Turns review findings into tests. One writer agent per finding writes the smallest test that proves it, runs it, and reports whether it reproduced the defect. A hook confines the writer to test files. | [README](plugins/test-gap-writer/README.md) · [CHANGELOG](plugins/test-gap-writer/CHANGELOG.md) |
+| `migration-safety` | Reviews database migrations for what breaks in production: the running release against the new schema during a deploy, table locks, data loss, constraints existing rows violate, missing rollbacks. A script finds the migrations first, so a change with none launches nothing. | [README](plugins/migration-safety/README.md) · [CHANGELOG](plugins/migration-safety/CHANGELOG.md) |
 
 ## Installation
 
@@ -33,6 +34,7 @@ Each plugin's README covers its usage and how to copy its pieces into a project 
 plugins/
   four-pass-review/      one directory per plugin; see its README
   test-gap-writer/
+  migration-safety/
 shared/
   finding-contract/      the findings.json schema every plugin reads and writes,
                          and its validator; canonical copy, see its README

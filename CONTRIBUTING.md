@@ -24,6 +24,8 @@ python3 scripts/sync-shared.py --write
 
 `scripts/check.sh` runs the same script without `--write`, so CI fails when a copy has been edited in place or is missing. A plugin that starts carrying shared code gets a line in the `SHARED` table in that script.
 
+A canonical file does not have to live under `shared/`: the read-only guard's canonical copy stays in `plugins/four-pass-review/hooks/`, beside the test suite that covers it, and `migration-safety` carries a copy.
+
 The one shared contract today is `shared/finding-contract/`: the schema for `findings.json` and its validator. Any plugin that writes findings writes that shape and validates it; any plugin that reads findings validates them on the way in. See its README for the fields and the versioning rule.
 
 ## Adding a plugin

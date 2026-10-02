@@ -208,6 +208,12 @@ class FindingContract(unittest.TestCase):
         # contract may not. Parsing is the fallback.
         self.assertIn("findings.json` sits in the same directory", self.text)
 
+    def test_default_selection_is_an_allow_list(self):
+        # A new plugin's pass (migration-safety) must not be selected by
+        # default just because nobody added it to a deny list.
+        self.assertIn("drop every finding whose `pass` is not `correctness`, `completeness` or `adhoc`",
+                      self.text)
+
     def test_invalid_input_is_refused_not_repaired(self):
         self.assertIn("Do not repair the file yourself", self.text)
 

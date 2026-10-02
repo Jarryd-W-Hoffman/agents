@@ -20,6 +20,13 @@
       "source": "./plugins/test-gap-writer",
       "category": "testing",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+    },
+    {
+      "name": "migration-safety",
+      "description": "Reviews database migrations for what breaks in production: old code against the new schema during a deploy, table locks, data loss, constraints existing rows violate, and missing rollbacks. Launches nothing when a change has no migrations",
+      "source": "./plugins/migration-safety",
+      "category": "productivity",
+      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     }
   ]
 }

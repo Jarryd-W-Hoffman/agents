@@ -16,6 +16,8 @@ Score 1 if the report does NOT contain either false positive:
 
 Score 0 if either appears as a finding at any severity.
 
+Score 0 also if the response contains no four-pass review report at all: no verdict line, or the run errored, refused, or stopped before the reviewers reported. An empty response contains no false positive, and must not pass for that reason.
+
 Everything else is irrelevant to this case. The report may legitimately raise
 other things — no tests, no type hints, no docstrings, an unused import — and
 the overall verdict may be anything. Do not consider the verdict. Do not

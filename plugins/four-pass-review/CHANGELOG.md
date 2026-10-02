@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The precision eval graders no longer pass a run that produced nothing.** They scored only whether a false positive appeared, so a run that errored or was refused before it started (for example, no sandbox backend for `--allow-tools Bash`) scored 1. Both now score a response with no report 0, and `tests/test_evals.py` pins it.
+
 ### Changed
 
 - **The plugin now lives at `plugins/four-pass-review/`** so the repository can hold more than one plugin. No behaviour change. Marketplace installs (`/plugin install four-pass-review@jarrydh-agents`) resolve the new path on their own; the other two install routes need updating by hand: `claude --plugin-dir` now takes `/path/to/agents/plugins/four-pass-review`, and the copy-the-pieces route copies from that directory. A hand-wired guard hook in `.claude/settings.json` needs its path to `readonly-guard.py` updated the same way.

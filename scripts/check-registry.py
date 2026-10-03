@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Check engineering-review's registry against the plugins that actually exist.
+"""Check the review plugin's registry against the plugins that actually exist.
 
-The registry lives inside the engineering-review plugin, and a plugin's own
+The registry lives inside the review plugin, and a plugin's own
 tests may not read outside it, so the cross-plugin checks live here and
 `scripts/check.sh` runs them:
 
 - every plugin in the marketplace has a registry entry, except
-  engineering-review itself, so a new plugin cannot be silently left out of
+  review itself, so a new plugin cannot be silently left out of
   every plan;
 - every registry entry names a plugin in the marketplace, and its skill
   (`<plugin>:<skill>`) exists as `plugins/<plugin>/skills/<skill>/SKILL.md`;
@@ -26,8 +26,8 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SELF = "engineering-review"
-REGISTRY = os.path.join(ROOT, "plugins", SELF, "skills", "review", "registry.json")
+SELF = "review"
+REGISTRY = os.path.join(ROOT, "plugins", SELF, "registry.json")
 MARKETPLACE = os.path.join(ROOT, ".claude-plugin", "marketplace.json")
 CONTRACT_README = os.path.join(ROOT, "shared", "finding-contract", "README.md")
 

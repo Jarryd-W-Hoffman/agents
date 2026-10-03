@@ -8,44 +8,44 @@
   },
   "plugins": [
     {
-      "name": "four-pass-review",
+      "name": "fourpass",
       "description": "Four-pass code review: completeness, correctness, compliance and consistency reviewer agents run in parallel, then merged into one ranked report",
-      "source": "./plugins/four-pass-review",
+      "source": "./plugins/fourpass",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     },
     {
-      "name": "test-gap-writer",
+      "name": "testgaps",
       "description": "Turns code-review findings into tests: one test-writer agent per finding writes the smallest test that proves it, runs it, and reports whether it reproduced the defect. A hook confines the writer to test files",
-      "source": "./plugins/test-gap-writer",
+      "source": "./plugins/testgaps",
       "category": "testing",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     },
     {
-      "name": "migration-safety",
+      "name": "migrations",
       "description": "Reviews database migrations for what breaks in production: old code against the new schema during a deploy, table locks, data loss, constraints existing rows violate, and missing rollbacks. Launches nothing when a change has no migrations",
-      "source": "./plugins/migration-safety",
+      "source": "./plugins/migrations",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     },
     {
-      "name": "change-impact",
+      "name": "impact",
       "description": "Maps what a change touches and what reaches it: callers, routes, scheduled tasks, queued jobs, event listeners, tests that reach it and changed code none do, data and contracts. Facts, not a review. Launches nothing when only docs or tests changed",
-      "source": "./plugins/change-impact",
+      "source": "./plugins/impact",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     },
     {
-      "name": "engineering-review",
+      "name": "review",
       "description": "Works out which of this marketplace's plugins a change needs, from the files it touches and with no model, and shows the plan: what would run, what is skipped and why, and what to offer afterwards",
-      "source": "./plugins/engineering-review",
+      "source": "./plugins/review",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     },
     {
-      "name": "regression-hunter",
+      "name": "regressions",
       "description": "Checks whether a change undoes what the repository's history already learned: removes a fix's guard, re-introduces reverted code, loosens a regression test, or leaves a usual partner file behind. Launches nothing when the history has nothing to say",
-      "source": "./plugins/regression-hunter",
+      "source": "./plugins/regressions",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     }

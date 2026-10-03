@@ -6,14 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- **The precision eval graders no longer pass a run that produced nothing.** They scored only whether a false positive appeared, so a run that errored or was refused before it started (for example, no sandbox backend for `--allow-tools Bash`) scored 1. Both now score a response with no report 0, and `tests/test_evals.py` pins it.
+- **Every review saves `report.md` and `findings.json`**, in a temporary directory outside the repository, and names both paths at the end. `findings.json` follows the finding contract (`skills/review/scripts/finding.schema.json`) and is validated with `finding_contract.py` before it is mentioned. It used to be written only under `--comment`, so it was missing exactly when the user wanted tests rather than a PR post. `/test-gap-writer:write-tests` reads it in preference to parsing the report.
 
 ### Changed
 
+- **`post-review.py` validates `findings.json` against the finding contract and refuses to post one that breaks it** (exit 2, one error per line naming the finding and field, nothing sent). `severity`, `confidence`, `pass` and `body` are now required where they were optional before, and unknown fields are refused, so a typo such as `file` for `path` no longer posts a comment with no location.
+
 - **The plugin now lives at `plugins/four-pass-review/`** so the repository can hold more than one plugin. No behaviour change. Marketplace installs (`/plugin install four-pass-review@jarrydh-agents`) resolve the new path on their own; the other two install routes need updating by hand: `claude --plugin-dir` now takes `/path/to/agents/plugins/four-pass-review`, and the copy-the-pieces route copies from that directory. A hand-wired guard hook in `.claude/settings.json` needs its path to `readonly-guard.py` updated the same way.
 - Each plugin is self-contained: `tests/`, `evals/`, `CHANGELOG.md` and `CONTRIBUTING.md` moved with it. The check script, CI workflow, `SECURITY.md` and the marketplace manifest stay at the repository root and run per plugin.
+
+### Fixed
+
+- **The precision eval graders no longer pass a run that produced nothing.** They scored only whether a false positive appeared, so a run that errored or was refused before it started (for example, no sandbox backend for `--allow-tools Bash`) scored 1. Both now score a response with no report 0, and `tests/test_evals.py` pins it.
 
 ## [0.2.0] - 2026-09-30
 

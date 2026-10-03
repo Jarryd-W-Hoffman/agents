@@ -94,7 +94,13 @@ All four share one confidence rubric (0 to 100, default report threshold 80), on
 2. **Launch the four reviewers in parallel**, as four named `Agent` calls in a single message. Reviewers receive commands to reproduce the diff, not the diff itself, so large changes do not blow up their context. With [agent teams](https://code.claude.com/docs/en/agent-teams) enabled those named spawns are also teammates, so you can follow up with one reviewer via `SendMessage` instead of re-running its pass — but the plugin does not depend on it.
 3. **Verify borderline findings.** Findings between the threshold and 89 confidence go to a lightweight verifier that re-derives them from the code. Refuted findings are dropped.
 4. **Merge.** Filter by threshold, deduplicate across passes (the owning pass keeps the finding), rank by severity then confidence, and compute the verdict: `FAIL` on any critical, `REQUEST_CHANGES` on any major, `PASS_WITH_NOTES` on any minor, else `PASS`. If any selected pass failed or returned nothing usable the verdict is `INCOMPLETE` instead, whatever the findings say — a review that did not happen is not a clean one, and `INCOMPLETE` neither approves nor blocks.
-5. **Report** in a fixed format, and optionally post it to the PR. With `--comment` the lead runs `skills/review/scripts/post-review.py`, which creates one pull-request review with an inline comment per finding anchored at its file and line on the head commit, the verdict and pass summaries as the review body, and the review event taken from the verdict: `PASS` and `PASS_WITH_NOTES` approve, since minor findings are nits, while `REQUEST_CHANGES` or `FAIL` requests changes and `INCOMPLETE` only comments. GitHub refuses to approve or request changes on your own PR, so the script falls back to a plain comment and says so. Findings on lines GitHub cannot anchor (outside the diff) are listed in the body instead. The script dry-runs first, and it is the only write the skill ever performs.
+5. **Report** in a fixed format, and optionally post it to the PR. With `--comment` the lead runs `skills/review/scripts/post-review.py`, which creates one pull-request review with an inline comment per finding anchored at its file and line on the head commit, the verdict and pass summaries as the review body, and the review event taken from the verdict: `PASS` and `PASS_WITH_NOTES` approve, since minor findings are nits, while `REQUEST_CHANGES` or `FAIL` requests changes and `INCOMPLETE` only comments. GitHub refuses to approve or request changes on your own PR, so the script falls back to a plain comment and says so. Findings on lines GitHub cannot anchor (outside the diff) are listed in the body instead. The script dry-runs first, and it is the only write the skill ever performs outside its temporary directory.
+
+Every run, with or without `--comment`, also saves `report.md` and `findings.json` to a temporary directory outside the repository and names both paths. `findings.json` follows the repository's [finding contract](../../shared/finding-contract/README.md) and is validated before the skill mentions it, and `post-review.py` validates it again before posting anything. It is what [test-gap-writer](../test-gap-writer/README.md) reads:
+
+```text
+/test-gap-writer:write-tests /tmp/tmp.X1y2/findings.json
+```
 
 The skill is read-only. It never edits files, runs builds or tests, or checks out other refs. Fixing findings is a separate step you ask for afterwards.
 
@@ -211,6 +217,8 @@ skills/review/
   scripts/
     post-review.py       posts the report to a PR as inline review comments
                          (tests live in tests/)
+    finding.schema.json  the finding contract findings.json follows
+    finding_contract.py  its validator; both are copies of shared/finding-contract/
 hooks/
   hooks.json             registers the PreToolUse read-only guard
   readonly-guard.py      entry point: scoping, the decision, --selftest

@@ -33,8 +33,12 @@ Each plugin's README covers its usage and how to copy its pieces into a project 
 plugins/
   four-pass-review/      one directory per plugin; see its README
   test-gap-writer/
+shared/
+  finding-contract/      the findings.json schema every plugin reads and writes,
+                         and its validator; canonical copy, see its README
 scripts/
   check.sh               every check CI runs, for every plugin or one
+  sync-shared.py         checks (or with --write, refreshes) each plugin's copy of shared/
 SECURITY.md              reporting process and the threat model of the guards
 CONTRIBUTING.md          repository-wide conventions; each plugin has its own
 .github/                 CI, dependabot, issue and PR templates

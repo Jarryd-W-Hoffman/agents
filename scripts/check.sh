@@ -12,7 +12,8 @@
 #
 # Code that several plugins carry a copy of lives canonically under shared/.
 # The shared checks run once, before the plugins: every copy matches its
-# canonical file, and the canonical code's own tests pass.
+# canonical file, the canonical code's own tests pass, and engineering-review's
+# registry lists every plugin in the marketplace.
 #
 #   ./scripts/check.sh                       everything, every plugin
 #   ./scripts/check.sh --manifests           only manifest/component validation (needs `claude`)
@@ -98,6 +99,7 @@ print(re.search(r"READONLY_GUARD_AGENTS='"'"'([^'"'"']*)'"'"'", c).group(1))')
 shared_checks() {
   local PLUGIN=shared
   run "$PYTHON" scripts/sync-shared.py
+  run "$PYTHON" scripts/check-registry.py
   for t in shared/*/tests/test_*.py; do
     run "$PYTHON" "$t"
   done

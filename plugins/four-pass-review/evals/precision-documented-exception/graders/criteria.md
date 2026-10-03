@@ -18,6 +18,8 @@ Score 1 if the report does NOT contain either false positive:
 
 Score 0 if either appears as a finding at any severity.
 
+Score 0 also if the response contains no four-pass review report at all: no verdict line, or the run errored, refused, or stopped before the reviewers reported. An empty response contains no false positive, and must not pass for that reason.
+
 Everything else is irrelevant to this case. Other findings and the overall
 verdict do not matter; do not consider them. Noting under Notes that the
 documented exception was checked and applies is correct behaviour and scores 1.

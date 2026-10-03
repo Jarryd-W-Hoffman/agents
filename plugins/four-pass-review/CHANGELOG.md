@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The plugin now lives at `plugins/four-pass-review/`** so the repository can hold more than one plugin. No behaviour change. Marketplace installs (`/plugin install four-pass-review@jarrydh-agents`) resolve the new path on their own; the other two install routes need updating by hand: `claude --plugin-dir` now takes `/path/to/agents/plugins/four-pass-review`, and the copy-the-pieces route copies from that directory. A hand-wired guard hook in `.claude/settings.json` needs its path to `readonly-guard.py` updated the same way.
 - Each plugin is self-contained: `tests/`, `evals/`, `CHANGELOG.md` and `CONTRIBUTING.md` moved with it. The check script, CI workflow, `SECURITY.md` and the marketplace manifest stay at the repository root and run per plugin.
 
+### Fixed
+
+- **The precision eval graders no longer pass a run that produced nothing.** They scored only whether a false positive appeared, so a run that errored or was refused before it started (for example, no sandbox backend for `--allow-tools Bash`) scored 1. Both now score a response with no report 0, and `tests/test_evals.py` pins it.
+
 ## [0.2.0] - 2026-09-30
 
 **Highlights.** Reviewers can use read-only external tooling, enforced by a PreToolUse guard rather than by instruction. Written rules bind at the revision the change branched from, so a change cannot supply its own `CLAUDE.md`. `--comment` posts inline review comments, supersedes its own earlier review instead of stacking duplicates, and can never approve on a review that did not fully run. An eval suite measures recall *and* false-positive rate; one check script runs everything CI runs. Details below.

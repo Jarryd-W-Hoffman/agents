@@ -155,6 +155,16 @@ class Graders(unittest.TestCase):
                     f"{case} must say the verdict is irrelevant, or it measures "
                     "the wrong thing")
 
+    def test_precision_graders_fail_a_run_that_produced_no_report(self):
+        # Measured on the migration-safety suite: a run refused before it
+        # started (no sandbox backend) scored 1.00 on a precision case, because
+        # an empty response contains no false positive.
+        for case in bp.CASES:
+            if case.startswith("precision-"):
+                with self.subTest(case=case):
+                    self.assertIn("contains no four-pass review report at all",
+                                  self.grader(case))
+
     def test_every_grader_declares_a_type_and_weight(self):
         for case in bp.CASES:
             text = self.grader(case)

@@ -256,6 +256,22 @@ def _split_git_global_options(args: list[str]) -> tuple[str | None, str | None, 
     return None, args[i], args[i + 1:]
 
 
+def _git_denied_flag(flags: list[str], denied: set[str]) -> str | None:
+    """The first flag that is, or abbreviates, an option in `denied`.
+
+    git takes any unambiguous prefix of a long option, so `--upload-p` is
+    `--upload-pack`. A bare `--` ends the options and is never a match.
+    """
+    for a in flags:
+        if a in denied:
+            return a
+        if (a.startswith("--") and len(a) > 3
+                and a not in GIT_PREFIX_EXEMPT_OPTIONS
+                and any(d.startswith(a) for d in denied)):
+            return a
+    return None
+
+
 def _check_git(args: list[str]) -> str | None:
     why, sub, rest = _split_git_global_options(args)
     if why:
@@ -263,9 +279,12 @@ def _check_git(args: list[str]) -> str | None:
     if sub is None:
         return None
     flags = _normalise_flags(rest)
-    bad_any = [a for a in flags if a in GIT_DENIED_ANY_OPTIONS]
-    if bad_any:
-        return f"`git {sub} {bad_any[0]}` writes a file; read the output instead"
+    bad = _git_denied_flag(flags, GIT_DENIED_ANY_OPTIONS)
+    if bad:
+        return f"`git {sub} {bad}` writes a file or runs a command; read the output instead"
+    bad = _git_denied_flag(flags, GIT_DENIED_SUBCOMMAND_OPTIONS.get(sub, set()))
+    if bad:
+        return f"`git {sub} {bad}` runs a command; use `git {sub}` without it"
     if sub in GIT_READONLY:
         return None
     rule = GIT_CONDITIONAL.get(sub)
@@ -273,9 +292,9 @@ def _check_git(args: list[str]) -> str | None:
         return f"`git {sub}` changes repository state"
     pos = _positional(rest)
     if "deny_flags" in rule:
-        bad = [a for a in flags if a in rule["deny_flags"]]
+        bad = _git_denied_flag(flags, rule["deny_flags"])
         if bad:
-            return f"`git {sub} {bad[0]}` modifies refs"
+            return f"`git {sub} {bad}` modifies refs"
     if "deny_positional_re" in rule:
         bad = [p for p in pos if re.search(rule["deny_positional_re"], p)]
         if bad:

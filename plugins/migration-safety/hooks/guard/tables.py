@@ -112,6 +112,22 @@ GIT_DENIED_GLOBAL_OPTIONS = {"-c", "--config-env", "--exec-path"}
 # hazard as GIT_EXTERNAL_DIFF and `git -c diff.external=`, which are already
 # denied. The `--no-` spellings turn the behaviour off and stay allowed.
 GIT_DENIED_ANY_OPTIONS = {"--output", "--ext-diff", "--textconv"}
+# Options of otherwise read-only subcommands that run a command given as their
+# value: `git grep -O<cmd>` opens the matches with <cmd>, and `--upload-pack`
+# names the program fetch and ls-remote run for a local or ssh remote.
+# `cat-file --filters` runs the clean/smudge filters configuration names, the
+# same hazard as `--textconv`.
+GIT_DENIED_SUBCOMMAND_OPTIONS = {
+    "grep": {"-O", "--open-files-in-pager"},
+    "ls-remote": {"-u", "--upload-pack"},
+    "fetch": {"--upload-pack"},
+    "cat-file": {"--filters"},
+}
+# Real git options that are a strict prefix of a denied one. git accepts any
+# unambiguous prefix of a long option (`--open` for `--open-files-in-pager`,
+# `--for` for `--force`), so denied options are matched by prefix; an exact
+# match on one of these wins in git, so it is not read as an abbreviation.
+GIT_PREFIX_EXEMPT_OPTIONS = {"--text"}
 # git subcommands that are read-only only with these argument shapes.
 # `deny_flags` are compared on the option name only (`--flag=value` and
 # bundled short flags such as `-fd` are normalised first).

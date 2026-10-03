@@ -6,6 +6,10 @@ and this plugin adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The read-only guard (the copy of four-pass-review's) denies git options that run a command.** `git grep -O<cmd>` (`--open-files-in-pager`) and `--upload-pack` on `git fetch` and `git ls-remote` run the command they are given, and `git cat-file --filters` runs configured filters; all were auto-allowed as reads. Denied options are now also matched by prefix, because git accepts any unambiguous abbreviation of a long option: `git grep --textc`, `git fetch --for` and `git grep --open=<cmd>` got past the exact-name checks.
+
 ### Added
 
 - `impact-analyst` agent: starts from the scan, drops name collisions, follows callers up to two more hops, and finds what a name search cannot see in a Laravel app (routes, middleware, the event-to-listener map, observers, the scheduler, dispatched jobs, container bindings, policies, views, config keys). Lists the tests that reach the change and the changed symbols none do, the data it touches, and contracts such as event and job payloads already serialized on the queue. Facts only: no severities, no verdict.

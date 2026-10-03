@@ -48,6 +48,17 @@ class BashAllow(unittest.TestCase):
         # --no-* turns the external-command behaviour off, so it stays a read
         "git diff --no-ext-diff main...HEAD",
         "git log --no-textconv -p",
+        # the options that look like denied ones are reads: `--text` is a real
+        # option, not an abbreviation of `--textconv`; `-O<file>` on a diff
+        # orders files and `-u` on log is a patch; a bare `--` ends options
+        "git diff --text main...HEAD",
+        "git log -O order.txt -p",
+        "git log -u -1",
+        "git grep -n TODO -- src",
+        "git grep -e TODO HEAD",
+        "git ls-remote --heads origin",
+        "git cat-file -p HEAD",
+        "git fetch --dry-run origin",
         # a version check is a read when it is the only argument
         "python3 --version",
         "node --version",
@@ -230,6 +241,25 @@ class BashDeny(unittest.TestCase):
         "git show --ext-diff HEAD",
         "git log --textconv -p",
         "git grep --textconv TODO",
+        # options of read-only subcommands that run the command they are given
+        "git grep -O'touch x' -e TODO",
+        "git grep -O 'touch x' -e TODO",
+        "git grep -nO'touch x' -e TODO",
+        "git grep --open-files-in-pager='touch x' -e TODO",
+        "git fetch --upload-pack='touch x' origin",
+        "git fetch origin --upload-pack 'touch x'",
+        "git ls-remote --upload-pack='touch x' origin",
+        "git ls-remote -u 'touch x' origin",
+        "git cat-file --filters HEAD:file",
+        # git accepts any unambiguous prefix of a long option, so denied
+        # options are denied however they are abbreviated
+        "git grep --open='touch x' -e TODO",
+        "git grep --textc TODO",
+        "git fetch --upload-p='touch x' origin",
+        "git ls-remote --upload='touch x' origin",
+        "git fetch --for origin",
+        "git fetch --pru origin",
+        "git diff --ext-d HEAD",
         # the version allowance is single-argument only
         "python3 --version -c 'import os; os.remove(\"x\")'",
         "python3 --version extra",

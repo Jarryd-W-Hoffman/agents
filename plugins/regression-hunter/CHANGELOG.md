@@ -6,6 +6,10 @@ and this plugin adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The read-only guard (the copy of four-pass-review's) denies git options that run a command.** `git grep -O<cmd>` (`--open-files-in-pager`) and `--upload-pack` on `git fetch` and `git ls-remote` run the command they are given, and `git cat-file --filters` runs configured filters; all were auto-allowed as reads. Denied options are now also matched by prefix, because git accepts any unambiguous abbreviation of a long option: `git grep --textc`, `git fetch --for` and `git grep --open=<cmd>` got past the exact-name checks.
+
 ### Added
 
 - `regression-reviewer` agent: reads each fix and revert the scan found, states the invariant it established, and checks the change against it at the head, following moved code. Reports a fix's guard removed or bypassed, reverted code re-introduced while the revert's cause still holds, a regression test removed or loosened, and a usual partner file left behind. Every finding names its earlier commit; fixes found intact are listed as kept.

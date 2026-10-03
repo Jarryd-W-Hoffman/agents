@@ -6,6 +6,10 @@ and this plugin adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The skill no longer has a launch-time preamble.** `git rev-parse --abbrev-ref HEAD` fails in a repository with no commits, and a failing launch-time command stops a skill loading. Step 1 now reads the repository state, and records the working tree that Step 4 compares against.
+
 ### Changed
 
 - **Findings JSON is validated against the finding contract** (`skills/write-tests/scripts/finding.schema.json`, checked by `finding_contract.py`) instead of checking for `id`, `path` and `line` by eye. An invalid file is refused with its errors, not repaired.

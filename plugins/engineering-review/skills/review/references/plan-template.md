@@ -28,7 +28,7 @@ Render the plan with this structure. Omit a section with nothing in it, except "
 
 - `{{plugin}}`: `/plugin install {{plugin}}@jarrydh-agents`
 
-{{One line, only when the user did not pass --plan: "Running the plan is not built yet; this is what it would do."}}
+{{Without --plan, one line: "Running these now." With --plan, nothing more.}}
 ```
 
 ## Rules

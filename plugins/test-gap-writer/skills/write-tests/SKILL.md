@@ -35,19 +35,23 @@ Arguments received: `$ARGUMENTS`
 | `--max N` | Launch at most N writers (default 8). |
 | `--runner "<cmd>"` | The command that runs tests, verbatim, instead of detecting it. |
 
-## Session context (collected at launch)
+## Repository state
 
-Branch: !`git rev-parse --abbrev-ref HEAD`
-Default branch: !`git branch --remotes --list origin/HEAD`
-Working tree: !`git status --short`
-
-The default branch line reads like `origin/HEAD -> origin/main`; the name after the arrow, without `origin/`, is the default branch. If that line is empty (no `origin` remote), assume `main`. If the branch line is empty, this is not a git repository: say so and stop.
-
-Record the working tree state now. Step 4 compares against it, so files the user already had modified are not mistaken for writer output.
-
+There is no launch-time preamble on purpose. A shell command run at launch, the exclamation-mark-and-backtick form, stops the whole skill from loading if it is refused or fails: `git rev-parse HEAD` fails in a repository with no commits, and the model then carries on without these instructions. Read the state at the start of Step 1 instead.
 ## Procedure
 
 ### Step 1 — Resolve the findings
+
+First read the repository state:
+
+```bash
+git rev-parse --show-toplevel                       # fails outside a repository: say so and stop
+git branch --show-current
+git symbolic-ref --short refs/remotes/origin/HEAD   # the default branch as origin/<name>; if it fails, assume main
+git status --short
+```
+
+Record that working tree state now. Step 4 compares against it, so files the user already had modified are not mistaken for writer output.
 
 Produce a list of findings in the **finding contract**, defined by `${CLAUDE_SKILL_DIR}/scripts/finding.schema.json`: objects with `id`, `title`, `severity` (`critical`, `major`, `minor`), `confidence` (0 to 100), `pass` (lower-case: `completeness`, `correctness`, `compliance`, `consistency`, `adhoc`, or another plugin's pass such as `migration-safety`), `path` (repo-relative), `line`, `body`, and optionally `end_line`, `side`, `fix`, `suggestion`.
 
@@ -101,7 +105,7 @@ git status --short
 git diff --stat
 ```
 
-Compare against the working tree recorded at launch. Every path that is new or changed since then is writer output. Classify each: a path under a test directory or with a test filename (`test_*.py`, `*_test.go`, `*.test.ts`, `*Test.php`, `*_spec.rb` and the like) is expected; anything else goes under **Source files touched**. The guard should have denied such a write, so a non-empty list is a problem to show the user, not something to fix: do not revert it, do not edit it, say that it should not have happened and that they should review it.
+Compare against the working tree recorded at the start of Step 1. Every path that is new or changed since then is writer output. Classify each: a path under a test directory or with a test filename (`test_*.py`, `*_test.go`, `*.test.ts`, `*Test.php`, `*_spec.rb` and the like) is expected; anything else goes under **Source files touched**. The guard should have denied such a write, so a non-empty list is a problem to show the user, not something to fix: do not revert it, do not edit it, say that it should not have happened and that they should review it.
 
 Count the test files and tests the writers reported under their `### Files` sections, reconciled against the paths you just listed.
 

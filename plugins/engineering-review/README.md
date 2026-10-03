@@ -1,11 +1,12 @@
 # engineering-review
 
-A Claude Code plugin that works out which of this marketplace's plugins a change needs, and shows the plan.
+A Claude Code plugin that works out which of this marketplace's plugins a change needs, runs them in parallel, and merges what they report into one result.
 
 ```text
-/engineering-review:review --plan          # the working tree
-/engineering-review:review 214 --plan      # pull request #214
-/engineering-review:review main...feature/x --plan
+/engineering-review:review                 # plan and run, on the working tree
+/engineering-review:review 214             # pull request #214
+/engineering-review:review main...feature/x
+/engineering-review:review 214 --plan      # show the plan only; runs nothing
 ```
 
 ```markdown
@@ -27,7 +28,21 @@ A Claude Code plugin that works out which of this marketplace's plugins a change
 - `test-gap-writer` — Writes tests that prove correctness and completeness findings. Edits test files, so it is offered after the review and never run without asking. Offered after four-pass-review.
 ```
 
-**This version plans; it runs nothing.** Running the selected plugins in parallel and merging their results is the next step. The plan comes first because it settles the part every later plugin plugs into: the registry.
+## How it runs
+
+1. **Plan**, as below, and show it. With `--plan`, stop here.
+2. **Run** each selected, installed plugin in its own `general-purpose` subagent, all launched in one message. Each subagent invokes that plugin's skill with the user's target and nothing else, so the plugin runs exactly as it does alone, including the agents it launches itself: four-pass-review's four reviewers, migration-safety's reviewer, change-impact's analyst. Total time is the slowest plugin's, not the sum.
+3. **Merge** with `skills/review/scripts/merge.py`, by rules:
+   - each plugin's `findings.json` must satisfy the [finding contract](../../shared/finding-contract/README.md), and its IDs must use the prefixes the registry gives that plugin; otherwise that plugin counts as failed;
+   - findings are kept as each plugin wrote them, never combined; findings from different plugins on overlapping lines are listed as overlaps for a person to judge;
+   - the verdict is computed from the merged findings, unless any selected plugin did not report (not installed, failed, no usable reply), which makes it `INCOMPLETE`. A review that did not happen is never a clean one.
+4. **Report** one merged report with every finding under its original ID, and save `report.md` and a merged `findings.json`. test-gap-writer is offered with that file; it edits test files, so it is never run without asking.
+
+Posting to a pull request is not part of it yet; each plugin is run without `--comment`.
+
+### What it has been checked against
+
+An end-to-end run on a throwaway Laravel repository (migration-safety's dropped-column fixture, as uncommitted changes) with all plugins loaded and Bash allowed only as `Bash(git:*)`, `Bash(python3:*)`, `Bash(mktemp:*)` and `Bash(gh:*)`. The first run found two bugs, both fixed: four-pass-review's launch-time preamble was refused under that permission, so its skill never loaded; and a plugin whose `report.md` could not be saved was counted as failed, dropping a valid critical finding from the merge. (Claude Code's Write tool refuses report files from subagents, so plugins run this way usually save only their JSON; that is expected and shows as a note.) The second run reported all three plugins and returned FAIL on migration-safety's critical MIG-1, for about $2.40 API-equivalent. It also showed that subagents share the session's scratchpad, where plugins save files with the same names, so each runner now makes its own directory. There is no `claude plugin eval` suite for running yet: an eval workspace has no repository for the plugins to resolve a target against.
 
 ## How it decides
 
@@ -66,20 +81,28 @@ claude --plugin-dir /path/to/agents/plugins/engineering-review
 /plugin install engineering-review@jarrydh-agents
 ```
 
-The plan marks any selected plugin that is not installed, with its install command. When running is built, a plugin that is not installed will be reported as not run, never as a clean result.
+The plan marks any selected plugin that is not installed, with its install command, and the run records it as not run, which makes the verdict `INCOMPLETE`.
 
 ## Layout
 
 ```text
 .claude-plugin/plugin.json
 skills/review/
-  SKILL.md                 the lead: resolve the target, run plan.py, show the plan
+  SKILL.md                 the lead: plan, run in parallel, merge, report
   registry.json            every plugin, and the paths that select it
-  references/plan-template.md
-  scripts/plan.py          selection, no model
+  references/
+    plan-template.md       the plan
+    runner-brief.md        what each plugin's subagent is told, and the reply it gives
+    report-template.md     the merged report
+  scripts/
+    plan.py                selection, no model
+    merge.py               the merge and the verdict, no model
+    finding.schema.json    the finding contract
+    finding_contract.py    its validator; both are copies of shared/finding-contract/
 tests/
   test_plan.py             the selection table, the globs, the registry, the CLI
-  test_skill_invariants.py no agents, no writes, the script decides
+  test_merge.py            the merge rules and the verdict
+  test_skill_invariants.py the script selects, the merge decides, plugins run unmodified
   test_lint.py             standard-library lint
 ```
 

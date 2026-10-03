@@ -168,14 +168,12 @@ class SkillBody(unittest.TestCase):
     def test_same_path_findings_run_in_waves(self):
         self.assertRegex(self.text, r"(?i)wave")
 
-    def test_preamble_commands_are_plain_git(self):
-        # The `!` lines run under the skill's own allowed-tools. A pipe into
-        # sed or head is not `Bash(git:*)`, and in headless mode that blocked
-        # the preamble and the skill body never loaded.
-        for line in re.findall(r"!`([^`]*)`", self.text):
-            self.assertTrue(line.startswith("git "), line)
-            for bad in ("|", "||", "2>", "&&", ";"):
-                self.assertNotIn(bad, line, line)
+    def test_no_launch_time_preamble(self):
+        # A refused or failing launch-time command stops the skill loading;
+        # `git rev-parse HEAD` fails in a repository with no commits.
+        self.assertEqual(re.findall(r"!`[^`]*`", self.text), [])
+        self.assertIn("git rev-parse --show-toplevel", self.text)
+        self.assertIn("Record that working tree state now", self.text)
 
     def test_names_every_outcome(self):
         for word in OUTCOMES:

@@ -40,6 +40,7 @@ SHARED = {
         "plugins/four-pass-review/skills/review/scripts",
         "plugins/test-gap-writer/skills/write-tests/scripts",
         "plugins/migration-safety/skills/check/scripts",
+        "plugins/engineering-review/skills/review/scripts",
     )),
     GUARD: (GUARD_FILES, (
         "plugins/migration-safety/hooks",

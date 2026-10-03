@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The skill no longer has a launch-time preamble.** Its four `!` commands used pipes and `||` fallbacks, which do not match a `Bash(git:*)` permission, so in any session without blanket Bash permission they were refused and the skill never loaded; the model carried on without its instructions. Found when engineering-review ran it from a subagent. Step 1 now reads the branch, default branch, working tree and diff stat itself.
+
 ### Added
 
 - **Every review saves `report.md` and `findings.json`**, in a temporary directory outside the repository, and names both paths at the end. `findings.json` follows the finding contract (`skills/review/scripts/finding.schema.json`) and is validated with `finding_contract.py` before it is mentioned. It used to be written only under `--comment`, so it was missing exactly when the user wanted tests rather than a PR post. `/test-gap-writer:write-tests` reads it in preference to parsing the report.

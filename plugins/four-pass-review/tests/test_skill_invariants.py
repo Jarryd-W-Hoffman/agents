@@ -174,6 +174,20 @@ class IncrementalHonesty(Contains):
                              "an incremental PASS is not a verdict on the whole change")
 
 
+class NoPreamble(Contains):
+    """A refused or failing launch-time command stops the skill loading."""
+
+    def test_no_launch_time_preamble(self):
+        # Measured: run by engineering-review in a session allowed Bash(git:*),
+        # the old preamble's pipes and fallbacks were refused and the skill
+        # never loaded.
+        text = read(SKILL)
+        self.assertEqual(re.findall(r"!`[^`]*`", text), [],
+                         "launch-time commands are back; read the state in Step 1")
+        self.assert_contains(text, "git rev-parse --show-toplevel", "SKILL.md",
+                             "Step 1 must read the repository state itself")
+
+
 class FindingContract(Contains):
     """Other plugins read findings.json, not the report. It must always be written, and valid."""
 

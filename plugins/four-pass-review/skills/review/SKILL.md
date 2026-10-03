@@ -37,16 +37,23 @@ Arguments received: `$ARGUMENTS`
 | `--comment` | After the report, post it to the PR as one review: the summary as the review body, an inline comment per finding at its file and line, and the review event set from the verdict (`PASS` and `PASS_WITH_NOTES` approve, `REQUEST_CHANGES` and `FAIL` request changes). Requires a PR target. |
 | `--comment=summary` | Post the report as a single ordinary PR comment instead of inline comments. |
 
-## Session context (collected at launch)
+## Repository state
 
-Branch: !`git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "not a git repo"`
-Default branch: !`git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#origin/##' | grep . || echo "unknown (assume main)"`
-Working tree: !`git status --short 2>/dev/null | head -40`
-Diff stat vs HEAD: !`git diff HEAD --stat 2>/dev/null | tail -15`
+There is no launch-time preamble on purpose. A shell command run at launch, the exclamation-mark-and-backtick form, stops the whole skill from loading if it is refused or fails, and the model then carries on without these instructions. A pipe or a `||` fallback does not match a `Bash(git:*)` permission, so in a session without blanket Bash permission such a preamble is refused outright. Read the state in Step 1 instead.
 
 ## Procedure
 
 ### Step 1 — Resolve the target into a Review Packet
+
+First read the repository state:
+
+```bash
+git rev-parse --show-toplevel                       # fails outside a repository: say so and stop
+git branch --show-current                           # the current branch; empty on a detached HEAD
+git symbolic-ref --short refs/remotes/origin/HEAD   # the default branch as origin/<name>; if it fails, assume main
+git status --short
+git diff HEAD --stat
+```
 
 Build a **Review Packet** the reviewers can act on without guessing. Prefer commands over pasted content: give reviewers the exact `git`/`gh` commands that reproduce the diff, not the diff itself, unless it is under ~150 lines.
 

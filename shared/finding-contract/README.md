@@ -54,6 +54,7 @@ No other fields. An unknown field is an error, so a typo such as `file` for `pat
 | `COR-` | `correctness` | four-pass-review |
 | `CPL-` | `compliance` | four-pass-review |
 | `CNS-` | `consistency` | four-pass-review |
+| `MIG-` | `migration-safety` | migration-safety |
 | `ADHOC-` | `adhoc` | test-gap-writer, for a request typed in plain words |
 
 The contract does not enumerate passes, so a new plugin adds its own without a contract change. Pick a prefix nobody uses and add a row here.

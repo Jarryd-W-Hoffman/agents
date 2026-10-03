@@ -31,7 +31,7 @@ Arguments received: `$ARGUMENTS`
 | `path/to/findings.json` | A findings list in the finding contract (`scripts/finding.schema.json`; what four-pass-review saves and posts with). Validated, then used as is. |
 | `"test that export_row handles a null customer"` | One ad-hoc request in plain words. Becomes a single `ADHOC-1` finding, with the path and line if the user gave them. |
 | `--only COR-1,CMP-2` | Restrict to the named finding IDs. |
-| `--all-passes` | Also select compliance and consistency findings. By default only correctness, completeness and ad-hoc findings are selected, because those are the ones a test can prove. |
+| `--all-passes` | Also select findings from every other pass: compliance, consistency, and other plugins' passes such as `migration-safety`. By default only correctness, completeness and ad-hoc findings are selected, because those are the ones a test can prove. |
 | `--max N` | Launch at most N writers (default 8). |
 | `--runner "<cmd>"` | The command that runs tests, verbatim, instead of detecting it. |
 
@@ -67,7 +67,7 @@ Produce a list of findings in the **finding contract**, defined by `${CLAUDE_SKI
   If it exits 1, stop and show the user its errors, which name each finding and field. Do not repair the file yourself: it is input, and a guessed severity or line is worse than a refusal. A valid file is used as is.
 - **Free text**: build one finding, `id` `ADHOC-1`, `pass` `adhoc`, `severity` `major`, `confidence` 100, `title` and `body` the user's words, `path` and `line` from the request when given. If no path was given and the request names a function or module, find it with `Grep` and fill them in; if you cannot, stop and ask for the path.
 
-Then **select**. Apply `--only` first. Without `--all-passes`, drop compliance and consistency findings and list them in the report under `skipped` with "not selected; use --all-passes". Sort by severity (critical, major, minor), then confidence descending, then path, and keep the first `--max`. Anything cut by the cap is listed under `skipped` with "over --max". If nothing is left, say so and stop.
+Then **select**. Apply `--only` first. Without `--all-passes`, drop every finding whose `pass` is not `correctness`, `completeness` or `adhoc` and list them in the report under `skipped` with "not selected; use --all-passes". Sort by severity (critical, major, minor), then confidence descending, then path, and keep the first `--max`. Anything cut by the cap is listed under `skipped` with "over --max". If nothing is left, say so and stop.
 
 ### Step 2 — Build the Suite Packet
 

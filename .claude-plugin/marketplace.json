@@ -34,6 +34,13 @@
       "source": "./plugins/change-impact",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+    },
+    {
+      "name": "engineering-review",
+      "description": "Works out which of this marketplace's plugins a change needs, from the files it touches and with no model, and shows the plan: what would run, what is skipped and why, and what to offer afterwards",
+      "source": "./plugins/engineering-review",
+      "category": "productivity",
+      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     }
   ]
 }

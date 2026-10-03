@@ -34,7 +34,8 @@ The one shared contract today is `shared/finding-contract/`: the schema for `fin
 2. Add an entry to `.claude-plugin/marketplace.json` with `"source": "./plugins/<name>"`.
 3. Add a row to the table in the root `README.md`.
 4. Give it a `README.md`, a `CHANGELOG.md` starting at `[Unreleased]`, and tests under `tests/`.
-5. Run `./scripts/check.sh <name>`. The script discovers plugins by their manifest, so no edit to it is needed.
+5. Add an entry to `plugins/engineering-review/skills/review/registry.json` saying which changed paths make the plugin relevant, and a row or two for it in the selection table in that plugin's `tests/test_plan.py`. `scripts/check-registry.py` fails CI until you do.
+6. Run `./scripts/check.sh <name>`. The script discovers plugins by their manifest, so no edit to it is needed.
 
 ## Before opening a PR
 

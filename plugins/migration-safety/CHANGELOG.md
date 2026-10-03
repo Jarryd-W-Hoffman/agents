@@ -6,6 +6,10 @@ and this plugin adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The read-only guard (the copy of four-pass-review's) denies git options that run a command.** `git grep -O<cmd>` (`--open-files-in-pager`) and `--upload-pack` on `git fetch` and `git ls-remote` run the command they are given, and `git cat-file --filters` runs configured filters; all were auto-allowed as reads. Denied options are now also matched by prefix, because git accepts any unambiguous abbreviation of a long option: `git grep --textc`, `git fetch --for` and `git grep --open=<cmd>` got past the exact-name checks.
+
 ### Added
 
 - `migration-reviewer` agent: judges a change's migrations against a production database that holds data and serves traffic while the previous release is still live. Reads the migrations, the schema before them, and the application code at both the base and the head revision. Reports old code breaking against the new schema, locks and rewrites on large tables, constraints existing rows violate, data loss (including Laravel 11's `->change()` dropping unrestated modifiers), edited or out-of-order migration history, backfills inside schema migrations, and missing or wrong `down()`. States the deploy model it judged against, and whether it was written down or assumed. Uses four-pass-review's confidence scale and output shape with `MIG-` IDs.

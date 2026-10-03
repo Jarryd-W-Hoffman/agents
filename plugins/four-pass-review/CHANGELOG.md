@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The read-only guard denies git options that run a command.** `git grep -O<cmd>` (`--open-files-in-pager`) and `--upload-pack` on `git fetch` and `git ls-remote` run the command they are given, and `git cat-file --filters` runs configured filters; all were auto-allowed as reads. Denied options are now also matched by prefix, because git accepts any unambiguous abbreviation of a long option: `git grep --textc`, `git fetch --for` and `git grep --open=<cmd>` got past the exact-name checks.
 - **The skill no longer has a launch-time preamble.** Its four `!` commands used pipes and `||` fallbacks, which do not match a `Bash(git:*)` permission, so in any session without blanket Bash permission they were refused and the skill never loaded; the model carried on without its instructions. Found when engineering-review ran it from a subagent. Step 1 now reads the branch, default branch, working tree and diff stat itself.
 
 ### Added

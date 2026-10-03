@@ -43,6 +43,7 @@ SHARED = {
     )),
     GUARD: (GUARD_FILES, (
         "plugins/migration-safety/hooks",
+        "plugins/change-impact/hooks",
     )),
 }
 

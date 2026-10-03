@@ -86,7 +86,7 @@ If the analyst returns nothing usable, say the analysis did not complete, and of
    ```
 
    If it reports errors in the analyst's JSON, correct only what the errors name (a field spelled wrong, a missing `limits` line, an absolute path) and validate again. Do not add callers, entry points or risks of your own.
-3. Write the report using `${CLAUDE_SKILL_DIR}/references/report-template.md` exactly, from the validated JSON, and save it beside it as `impact.md`.
+3. Render the report using `${CLAUDE_SKILL_DIR}/references/report-template.md` exactly, from the validated JSON. **Your reply is that report**, shown in full: the reader sees the map in the conversation, not a summary of it and not only a file path. Save the same text beside the JSON as `impact.md`.
 4. End your reply with one line giving both paths.
 
 ## Rules

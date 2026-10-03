@@ -171,6 +171,11 @@ class Skill(unittest.TestCase):
     def test_validates_the_map(self):
         self.assertIn('scripts/impact_contract.py" <dir>/impact.json', self.text)
 
+    def test_reply_is_the_rendered_map(self):
+        # Measured: told only to "write the report and save it", the lead
+        # replied with a prose summary, and the reader never saw the map.
+        self.assertIn("**Your reply is that report**", self.text)
+
     def test_lead_does_not_add_facts(self):
         self.assertIn("Do not add callers, entry points or risks of your own", self.text)
 

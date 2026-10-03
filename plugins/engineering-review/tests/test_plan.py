@@ -39,7 +39,7 @@ def follow_ups(files):
     return {f["plugin"] for f in plan_mod.plan(files, REGISTRY)["follow_ups"]}
 
 
-FOUR, MIG, IMPACT = "four-pass-review", "migration-safety", "change-impact"
+FOUR, MIG, IMPACT, REG = "four-pass-review", "migration-safety", "change-impact", "regression-hunter"
 
 # change shape -> (changed files, plugins that must be selected)
 CASES = {
@@ -47,26 +47,26 @@ CASES = {
     "docs only": (["README.md", "docs/deploy.md", "CHANGELOG.md"], set()),
     "assets and licence only": (["public/logo.svg", "LICENSE"], set()),
     "lockfile only": (["composer.lock"], set()),
-    "application code": (["app/Services/InvoiceService.php"], {FOUR, IMPACT}),
-    "tests only": (["tests/Feature/InvoiceTest.php"], {FOUR}),
-    "nested tests only": (["packages/billing/tests/unit/test_total.py"], {FOUR}),
+    "application code": (["app/Services/InvoiceService.php"], {FOUR, REG, IMPACT}),
+    "tests only": (["tests/Feature/InvoiceTest.php"], {FOUR, REG}),
+    "nested tests only": (["packages/billing/tests/unit/test_total.py"], {FOUR, REG}),
     "laravel migration alone": (
-        ["database/migrations/2026_10_01_000000_add_currency.php"], {FOUR, MIG, IMPACT}),
+        ["database/migrations/2026_10_01_000000_add_currency.php"], {FOUR, REG, MIG, IMPACT}),
     "migration with model and docs": (
         ["database/migrations/2026_10_01_000000_add_currency.php", "app/Models/Order.php",
-         "README.md"], {FOUR, MIG, IMPACT}),
+         "README.md"], {FOUR, REG, MIG, IMPACT}),
     "laravel module migration": (
-        ["Modules/Billing/Database/Migrations/2026_10_01_000000_x.php"], {FOUR, MIG, IMPACT}),
-    "rails migration": (["db/migrate/20261001000000_add_currency.rb"], {FOUR, MIG, IMPACT}),
-    "django migration": (["shop/migrations/0007_order_currency.py"], {FOUR, MIG, IMPACT}),
-    "django migrations package marker only": (["shop/migrations/__init__.py"], {FOUR, IMPACT}),
-    "alembic revision": (["alembic/versions/3f2a_add_currency.py"], {FOUR, MIG, IMPACT}),
-    "flyway script": (["src/main/resources/db/migration/V12__add_currency.sql"], {FOUR, MIG, IMPACT}),
-    "prisma migration": (["prisma/migrations/20261001000000_x/migration.sql"], {FOUR, MIG, IMPACT}),
-    "config only": (["config/queue.php", ".env.example"], {FOUR, IMPACT}),
-    "ci workflow only": ([".github/workflows/deploy.yml"], {FOUR, IMPACT}),
+        ["Modules/Billing/Database/Migrations/2026_10_01_000000_x.php"], {FOUR, REG, MIG, IMPACT}),
+    "rails migration": (["db/migrate/20261001000000_add_currency.rb"], {FOUR, REG, MIG, IMPACT}),
+    "django migration": (["shop/migrations/0007_order_currency.py"], {FOUR, REG, MIG, IMPACT}),
+    "django migrations package marker only": (["shop/migrations/__init__.py"], {FOUR, REG, IMPACT}),
+    "alembic revision": (["alembic/versions/3f2a_add_currency.py"], {FOUR, REG, MIG, IMPACT}),
+    "flyway script": (["src/main/resources/db/migration/V12__add_currency.sql"], {FOUR, REG, MIG, IMPACT}),
+    "prisma migration": (["prisma/migrations/20261001000000_x/migration.sql"], {FOUR, REG, MIG, IMPACT}),
+    "config only": (["config/queue.php", ".env.example"], {FOUR, REG, IMPACT}),
+    "ci workflow only": ([".github/workflows/deploy.yml"], {FOUR, REG, IMPACT}),
     "a file merely named like migrations": (["docs/migrations.md"], set()),
-    "seeder is not a migration": (["database/seeders/UserSeeder.php"], {FOUR, IMPACT}),
+    "seeder is not a migration": (["database/seeders/UserSeeder.php"], {FOUR, REG, IMPACT}),
 }
 
 
@@ -206,7 +206,7 @@ class Cli(unittest.TestCase):
         self.assertEqual(code, 0, err)
         data = json.loads(out)
         self.assertEqual(data["head"], "working tree")
-        self.assertEqual({s["plugin"] for s in data["selected"]}, {FOUR, MIG, IMPACT})
+        self.assertEqual({s["plugin"] for s in data["selected"]}, {FOUR, REG, MIG, IMPACT})
 
     def test_not_a_repository_exits_1(self):
         with tempfile.TemporaryDirectory() as tmp:

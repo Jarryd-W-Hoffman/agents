@@ -8,6 +8,7 @@ and this plugin adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- regression-hunter in the registry: selected for any change to code, config or tests (a loosened regression test is a regression), skipped for docs, assets and lockfiles. The selection table covers it.
 - **Running the plan.** Without `--plan`, the skill launches one `general-purpose` subagent per selected, installed plugin, all in one message; each runs that plugin's skill unchanged, so each plugin's own agents run exactly as they do alone. Subagents reply in a fixed block (status, file paths, verdict, reason, note), which the lead records in `results.json`. Each runner saves its plugin's output in its own `mktemp -d` directory, because subagents share the session scratchpad and plugins use the same file names.
 - `scripts/merge.py`: validates each plugin's `findings.json` against the finding contract and the registry's prefixes, merges the findings without combining any, flags findings from different plugins on overlapping lines for a person, and computes one verdict. Any selected plugin that did not report, for any reason, makes it `INCOMPLETE`. A note (for example a report.md that could not be saved) never changes a plugin's status: the contract file is the result.
 - The merged report, `report.md` and a validated merged `findings.json`; test-gap-writer offered afterwards with that file, never run without asking.

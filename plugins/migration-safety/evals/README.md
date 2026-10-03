@@ -22,7 +22,23 @@ claude plugin eval --allow-tools Bash --ablation none .
 
 `--allow-tools Bash` needs Claude Code's sandbox, which on Linux needs `bubblewrap` and `socat` (`sudo apt install bubblewrap socat`). Without them every run is refused before it starts, reports `$0.00`, and scores 0, except that a precision grader with no guard against it would score an empty response 1. Both precision graders here score a missing report 0, and `tests/test_evals.py` pins that.
 
-A run launches one reviewer, not four plus verifiers, so it costs a fraction of a four-pass run. `no-migrations` launches none and is the cheapest case in the repository. No baseline has been recorded yet; record one here, with the plugin and CLI versions and the date, the first time the full suite is run with `--runs 3`.
+A run launches one reviewer, not four plus verifiers, so it costs a fraction of a four-pass run. `no-migrations` launches none and is the cheapest case in the repository. ## Baseline
+
+Plugin 0.1.0, Claude Code 2.1.288, 2026-10-03, `--runs 1 --ablation none`: **7/7, $2.24 API-equivalent over 4 minutes** (three at a time).
+
+| Case | Score | Cost | Seconds |
+|---|---|---|---|
+| no-migrations | 1 | $0.12 | 9 |
+| precision-expand-contract | 1 | $0.30 | 126 |
+| precision-new-table | 1 | $0.31 | 126 |
+| recall-change-drops-nullable | 1 | $0.40 | 161 |
+| recall-dropped-column | 1 | $0.37 | 64 |
+| recall-edited-migration | 1 | $0.35 | 63 |
+| recall-not-null-no-default | 1 | $0.39 | 75 |
+
+Every run was checked in its trace: the skill loaded, the reviewer was launched in every case except `no-migrations` (no launch, as designed), and no sandbox error appeared. One run per case shows that each case *can* pass, not how often it does; record a `--runs 3` baseline before comparing changes against these numbers.
+
+Two earlier attempts measured nothing and are not baselines. In the first, the eval sandbox could not start (Ubuntu's AppArmor user-namespace restriction), so every shell command failed. In the second, the skill's launch-time `git rev-parse --abbrev-ref HEAD` failed in the eval workspace's empty repository, which stops a skill loading; the model improvised from the prompt and still scored 5/7. That is why the skill now has no launch-time preamble, and why a score is only trusted after the trace shows the skill loaded.
 
 ## The cases
 

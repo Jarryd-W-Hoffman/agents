@@ -12,7 +12,13 @@ Usage:
     extract-findings.py <report.md> --out <file>    # JSON to a file
 
 Exits 1 with a message on stderr when the report contains no findings it can
-parse, so the lead stops rather than launching writers with nothing to do.
+parse, so the lead stops rather than launching writers with nothing to do, and
+when what it parsed breaks the finding contract (finding.schema.json beside
+this script), so a malformed report is refused rather than half-read.
+
+Parsing the report is the fallback. four-pass-review saves a validated
+findings.json next to its report.md, and the skill uses that when it exists;
+the report's layout may change, the contract may not.
 
 Two finding shapes exist in the report, and both are handled:
 
@@ -32,11 +38,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 
+# The finding contract sits beside this script. Nothing puts this directory on
+# sys.path when the script is run by absolute path or loaded by the tests.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from finding_contract import validate as validate_findings  # noqa: E402
+
 SEVERITY_SECTIONS = {"critical": "critical", "major": "major", "minor": "minor"}
-PASSES = ("completeness", "correctness", "compliance", "consistency", "adhoc")
+# A pass name as the contract spells it: lower-case, hyphens allowed, so a
+# plugin's pass such as `migration-safety` parses as well as the four.
+PASS = r"[a-z][a-z0-9-]*"
 
 # `## Critical (2)` -- the count is optional so a hand-written report still parses.
 SECTION_RE = re.compile(r"^##\s+(Critical|Major|Minor)\b", re.I)
@@ -49,7 +64,7 @@ HEADING_RE = re.compile(r"^###\s+\[([A-Z]+-\d+)\]\s+(.+?)\s*$")
 LOCATION_RE = re.compile(
     r"^`(?P<path>[^`:]+):(?P<line>\d+)(?:-(?P<end>\d+))?`"
     r"\s*[·\-–—]\s*confidence\s+(?P<conf>\d+)"
-    r"\s*[·\-–—]\s*(?P<pass>[a-z]+)"
+    r"\s*[·\-–—]\s*(?P<pass>" + PASS + r")"
 )
 FIX_RE = re.compile(r"^\*\*Fix:\*\*\s*(.*)$")
 # `- **[CNS-3]** `path:12` — one-line description (confidence 82, consistency)`
@@ -57,7 +72,7 @@ BULLET_RE = re.compile(
     r"^-\s+\*\*\[(?P<id>[A-Z]+-\d+)\]\*\*\s+"
     r"`(?P<path>[^`:]+):(?P<line>\d+)(?:-(?P<end>\d+))?`"
     r"\s*[·\-–—]\s*(?P<desc>.+?)"
-    r"\s*\(confidence\s+(?P<conf>\d+),\s*(?P<pass>[a-z]+)[^)]*\)\s*$"
+    r"\s*\(confidence\s+(?P<conf>\d+),\s*(?P<pass>" + PASS + r")[^)]*\)\s*$"
 )
 
 
@@ -92,7 +107,9 @@ def parse_report(text: str) -> list[dict]:
         if current is None:
             return
         if current.get("path") is not None:
-            body = " ".join(l.strip() for l in body_lines if l.strip())
+            # The contract requires a body. A heading with only a location and
+            # a fix line still names the defect, in its title.
+            body = " ".join(l.strip() for l in body_lines if l.strip()) or current["title"]
             findings.append(_finding(
                 current["id"], current["title"], current["severity"],
                 current["confidence"], current["pass"], current["path"],
@@ -173,6 +190,14 @@ def main(argv=None) -> int:
         print("extract-findings: no findings parsed. Expected `### [ID] title` blocks under "
               "## Critical / ## Major, or `- **[ID]** ...` bullets under ## Minor, as the "
               "four-pass-review report template writes them.", file=sys.stderr)
+        return 1
+
+    errors = validate_findings(findings)
+    if errors:
+        for e in errors:
+            print(f"extract-findings: {e}", file=sys.stderr)
+        print("extract-findings: the parsed findings break the finding contract "
+              "(finding.schema.json); fix the report or pass a findings.json", file=sys.stderr)
         return 1
 
     payload = json.dumps(findings, indent=2) + "\n"

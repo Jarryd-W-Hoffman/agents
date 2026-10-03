@@ -10,6 +10,10 @@
 # from inside that plugin's directory, so each plugin stays self-contained and
 # its tests never reach outside it.
 #
+# Code that several plugins carry a copy of lives canonically under shared/.
+# The shared checks run once, before the plugins: every copy matches its
+# canonical file, and the canonical code's own tests pass.
+#
 #   ./scripts/check.sh                       everything, every plugin
 #   ./scripts/check.sh --manifests           only manifest/component validation (needs `claude`)
 #   ./scripts/check.sh --tests               only the Python suites (needs `python3`)
@@ -86,6 +90,14 @@ plugin_tests() {
   fi
 }
 
+shared_checks() {
+  local PLUGIN=shared
+  run "$PYTHON" scripts/sync-shared.py
+  for t in shared/*/tests/test_*.py; do
+    run "$PYTHON" "$t"
+  done
+}
+
 for_each_plugin() {
   for PLUGIN in $(plugins); do
     export PLUGIN
@@ -94,9 +106,9 @@ for_each_plugin() {
 }
 
 case "$what" in
-  all)         marketplace_manifest; for_each_plugin plugin_manifests; for_each_plugin plugin_tests ;;
+  all)         marketplace_manifest; for_each_plugin plugin_manifests; shared_checks; for_each_plugin plugin_tests ;;
   --manifests) marketplace_manifest; for_each_plugin plugin_manifests ;;
-  --tests)     for_each_plugin plugin_tests ;;
+  --tests)     shared_checks; for_each_plugin plugin_tests ;;
 esac
 
 printf '\n\033[1mall checks passed\033[0m\n'

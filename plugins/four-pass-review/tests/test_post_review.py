@@ -491,8 +491,10 @@ class OfflineDryRun(unittest.TestCase):
             fh.write(DIFF)
         self.findings = os.path.join(self.tmp, "findings.json")
         with open(self.findings, "w", encoding="utf-8") as fh:
-            json.dump([{"id": "COR-1", "title": "t", "path": "app/Exporter.php",
-                        "line": 13, "body": "b", "fix": "f"}], fh)
+            json.dump([{"id": "COR-1", "title": "t", "severity": "critical",
+                        "confidence": 92, "pass": "correctness",
+                        "path": "app/Exporter.php", "line": 13, "body": "b",
+                        "fix": "f"}], fh)
         self.summary = os.path.join(self.tmp, "summary.md")
         with open(self.summary, "w", encoding="utf-8") as fh:
             fh.write("**Verdict:** FAIL\n")
@@ -524,6 +526,37 @@ class OfflineDryRun(unittest.TestCase):
         code, out = self.run_main("--mode", "summary")
         self.assertEqual(code, 0)
         self.assertIn(pr.FOOTER, out)
+
+    def write_findings(self, findings):
+        with open(self.findings, "w", encoding="utf-8") as fh:
+            json.dump(findings, fh)
+
+    def run_main_err(self, *extra):
+        buf, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            code = pr.main(["--pr", "1", "--findings", self.findings,
+                            "--summary", self.summary, "--dry-run",
+                            "--diff-file", self.diff, "--head-sha", "abc123",
+                            *extra])
+        return code, buf.getvalue(), err.getvalue()
+
+    def test_findings_breaking_the_contract_are_refused(self):
+        # Missing severity, confidence and pass: the shape post-review used to
+        # accept. It must now be refused before any payload is built.
+        self.write_findings([{"id": "COR-1", "title": "t", "path": "app/Exporter.php",
+                              "line": 13, "body": "b"}])
+        for mode in ("inline", "summary"):
+            code, out, err = self.run_main_err("--mode", mode)
+            self.assertEqual(code, 2, mode)
+            self.assertEqual(out, "", mode)
+            self.assertIn("missing required field 'severity'", err)
+            self.assertIn("nothing posted", err)
+
+    def test_findings_not_a_list_are_refused(self):
+        self.write_findings({"findings": []})
+        code, _, err = self.run_main_err()
+        self.assertEqual(code, 2)
+        self.assertIn("expected array", err)
 
 
 class GhStub:

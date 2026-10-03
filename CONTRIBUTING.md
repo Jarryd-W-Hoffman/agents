@@ -7,12 +7,24 @@ This file covers the repository. Each plugin has its own `CONTRIBUTING.md` with 
 Every plugin lives under `plugins/<name>/` and is self-contained:
 
 - `.claude-plugin/plugin.json` is its manifest and carries its own `version`.
-- `agents/`, `skills/`, `hooks/` hold what the plugin ships. `${CLAUDE_PLUGIN_ROOT}` resolves to this directory at runtime, and an install copies only this directory, so nothing in a plugin may import, read or reference a file outside it. If two plugins need the same code, each carries its own copy.
+- `agents/`, `skills/`, `hooks/` hold what the plugin ships. `${CLAUDE_PLUGIN_ROOT}` resolves to this directory at runtime, and an install copies only this directory, so nothing in a plugin may import, read or reference a file outside it. If two plugins need the same code, each carries its own copy, and the canonical file lives under `shared/` (see below).
 - `tests/test_*.py` are its unit suites. Anything named `*_integration.py` is opt-in and not run by CI.
 - `evals/` is its `claude plugin eval` suite, if it has one. Run from the plugin directory.
 - `README.md`, `CHANGELOG.md` and `CONTRIBUTING.md` are its own.
 
 The repository root holds what is shared: the marketplace manifest, `scripts/check.sh`, `SECURITY.md` and `.github/`.
+
+## Shared code
+
+Code that more than one plugin carries has one canonical copy under `shared/` at the repository root, and `scripts/sync-shared.py` lists every place it is copied to. Edit the canonical file, never a copy, then run:
+
+```bash
+python3 scripts/sync-shared.py --write
+```
+
+`scripts/check.sh` runs the same script without `--write`, so CI fails when a copy has been edited in place or is missing. A plugin that starts carrying shared code gets a line in the `SHARED` table in that script.
+
+The one shared contract today is `shared/finding-contract/`: the schema for `findings.json` and its validator. Any plugin that writes findings writes that shape and validates it; any plugin that reads findings validates them on the way in. See its README for the fields and the versioning rule.
 
 ## Adding a plugin
 

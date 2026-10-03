@@ -27,8 +27,8 @@ Arguments received: `$ARGUMENTS`
 
 | Form | Meaning |
 |---|---|
-| `path/to/report.md` | A merged four-pass review report. Findings are extracted from it. |
-| `path/to/findings.json` | A findings list in the finding contract (the same shape four-pass-review posts to a PR). Used as is. |
+| `path/to/report.md` | A merged four-pass review report. Findings come from the `findings.json` saved beside it when there is one, otherwise they are extracted from the report. |
+| `path/to/findings.json` | A findings list in the finding contract (`scripts/finding.schema.json`; what four-pass-review saves and posts with). Validated, then used as is. |
 | `"test that export_row handles a null customer"` | One ad-hoc request in plain words. Becomes a single `ADHOC-1` finding, with the path and line if the user gave them. |
 | `--only COR-1,CMP-2` | Restrict to the named finding IDs. |
 | `--all-passes` | Also select compliance and consistency findings. By default only correctness, completeness and ad-hoc findings are selected, because those are the ones a test can prove. |
@@ -49,16 +49,22 @@ Record the working tree state now. Step 4 compares against it, so files the user
 
 ### Step 1 — Resolve the findings
 
-Produce a list of findings in the **finding contract**: objects with `id`, `title`, `severity` (`critical`, `major`, `minor`), `confidence` (0 to 100), `pass` (`completeness`, `correctness`, `compliance`, `consistency`, `adhoc`), `path` (repo-relative), `line`, optional `end_line`, `body`, optional `fix`.
+Produce a list of findings in the **finding contract**, defined by `${CLAUDE_SKILL_DIR}/scripts/finding.schema.json`: objects with `id`, `title`, `severity` (`critical`, `major`, `minor`), `confidence` (0 to 100), `pass` (lower-case: `completeness`, `correctness`, `compliance`, `consistency`, `adhoc`, or another plugin's pass such as `migration-safety`), `path` (repo-relative), `line`, `body`, and optionally `end_line`, `side`, `fix`, `suggestion`.
 
-- **Report** (`.md`): extract it into a temporary directory outside the repository (your scratchpad directory if one is listed in your system prompt, otherwise `mktemp -d`), never in the working tree:
+- **Report** (`.md`): if a `findings.json` sits in the same directory, which is where four-pass-review saves it, use that file as a findings JSON (below) and read the report only for its header. Otherwise extract the findings into a temporary directory outside the repository (your scratchpad directory if one is listed in your system prompt, otherwise `mktemp -d`), never in the working tree:
 
   ```bash
   python3 "${CLAUDE_SKILL_DIR}/scripts/extract-findings.py" <report.md> --out <dir>/findings.json
   ```
 
-  The script exits 1 with a message when it finds nothing; stop and tell the user. Keep the report's header (target, verdict, scope) as the target description and, if the report or the user supplied it, the change intent.
-- **Findings JSON**: read it and use it as is. Reject an entry missing `id`, `path` or `line`, and say which.
+  The script exits 1 with a message when it finds nothing or when what it parsed breaks the contract; stop and tell the user what it said. Either way, keep the report's header (target, verdict, scope) as the target description and, if the report or the user supplied it, the change intent.
+- **Findings JSON**: validate it before reading it:
+
+  ```bash
+  python3 "${CLAUDE_SKILL_DIR}/scripts/finding_contract.py" <findings.json>
+  ```
+
+  If it exits 1, stop and show the user its errors, which name each finding and field. Do not repair the file yourself: it is input, and a guessed severity or line is worse than a refusal. A valid file is used as is.
 - **Free text**: build one finding, `id` `ADHOC-1`, `pass` `adhoc`, `severity` `major`, `confidence` 100, `title` and `body` the user's words, `path` and `line` from the request when given. If no path was given and the request names a function or module, find it with `Grep` and fill them in; if you cannot, stop and ask for the path.
 
 Then **select**. Apply `--only` first. Without `--all-passes`, drop compliance and consistency findings and list them in the report under `skipped` with "not selected; use --all-passes". Sort by severity (critical, major, minor), then confidence descending, then path, and keep the first `--max`. Anything cut by the cap is listed under `skipped` with "over --max". If nothing is left, say so and stop.

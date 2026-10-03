@@ -11,3 +11,6 @@ plugins/*/evals/results/
 
 # Node (if tooling is added later)
 node_modules/
+
+# Python bytecode from running the suites and hooks
+__pycache__/

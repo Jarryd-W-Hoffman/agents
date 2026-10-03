@@ -84,7 +84,9 @@ class ParseReport(unittest.TestCase):
                 self.assertTrue(keys <= CONTRACT_KEYS | OPTIONAL_KEYS, f"extra {keys - CONTRACT_KEYS - OPTIONAL_KEYS}")
                 self.assertIsInstance(f["confidence"], int)
                 self.assertIsInstance(f["line"], int)
-                self.assertIn(f["pass"], ef.PASSES)
+
+    def test_output_satisfies_the_finding_contract(self):
+        self.assertEqual(ef.validate_findings(self.findings), [])
 
     def test_severity_comes_from_the_section(self):
         self.assertEqual(self.by_id["COR-1"]["severity"], "critical")
@@ -138,6 +140,23 @@ class ParseReport(unittest.TestCase):
         (f,) = ef.parse_report(text)
         self.assertEqual((f["id"], f["severity"]), ("COR-2", "major"))
 
+    def test_hyphenated_pass_parses(self):
+        text = ("## Major (1)\n\n### [MIG-1] Drops a column still read\n"
+                "`database/migrations/2026_10_01_drop_email.php:14` · confidence 90 · migration-safety\n"
+                "Old code reads it during the deploy.\n\n"
+                "## Minor (1)\n\n- **[MIG-2]** `database/migrations/x.php:3` — no down() "
+                "(confidence 81, migration-safety, also raised by completeness)\n")
+        a, b = ef.parse_report(text)
+        self.assertEqual((a["id"], a["pass"]), ("MIG-1", "migration-safety"))
+        self.assertEqual((b["id"], b["pass"]), ("MIG-2", "migration-safety"))
+        self.assertEqual(ef.validate_findings([a, b]), [])
+
+    def test_heading_with_no_body_uses_the_title(self):
+        text = "## Major (1)\n\n### [COR-3] Off by one\n`x.py:4` · confidence 90 · correctness\n**Fix:** use <=\n"
+        (f,) = ef.parse_report(text)
+        self.assertEqual(f["body"], "Off by one")
+        self.assertEqual(ef.validate_findings([f]), [])
+
     def test_empty_report_parses_to_nothing(self):
         self.assertEqual(ef.parse_report(""), [])
         self.assertEqual(ef.parse_report("# Four-pass review\n\n**Verdict:** PASS\n"), [])
@@ -171,6 +190,17 @@ class Main(unittest.TestCase):
         self.assertIn("4 finding(s)", err)
         with open(target, encoding="utf-8") as fh:
             self.assertEqual(len(json.load(fh)), 4)
+
+    def test_contract_breaking_report_exits_1(self):
+        # Two findings with the same id: parseable, but not a valid findings list.
+        with open(self.report, "w", encoding="utf-8") as fh:
+            fh.write("## Major (2)\n\n### [COR-1] A\n`x.py:1` · confidence 90 · correctness\nbody\n\n"
+                     "### [COR-1] B\n`y.py:2` · confidence 90 · correctness\nbody\n")
+        code, out, err = self._run([self.report])
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "")
+        self.assertIn("id repeats finding 0", err)
+        self.assertIn("finding contract", err)
 
     def test_no_findings_exits_1_with_a_message(self):
         with open(self.report, "w", encoding="utf-8") as fh:

@@ -1,0 +1,9 @@
+Fix double charge when Stripe retries a webhook (#311)
+
+Stripe retries any webhook it does not get a 2xx for within ten seconds.
+When the receipt mail was slow, the retry arrived while the first request
+was still running, and the second delivery created a second Payment and
+sent a second receipt. Customers saw two charges on their statement.
+
+Record the Stripe event id and skip events already recorded. The unique
+index on provider_event_id backs this up at the database.

@@ -41,10 +41,12 @@ SHARED = {
         "plugins/test-gap-writer/skills/write-tests/scripts",
         "plugins/migration-safety/skills/check/scripts",
         "plugins/engineering-review/skills/review/scripts",
+        "plugins/regression-hunter/skills/hunt/scripts",
     )),
     GUARD: (GUARD_FILES, (
         "plugins/migration-safety/hooks",
         "plugins/change-impact/hooks",
+        "plugins/regression-hunter/hooks",
     )),
 }
 

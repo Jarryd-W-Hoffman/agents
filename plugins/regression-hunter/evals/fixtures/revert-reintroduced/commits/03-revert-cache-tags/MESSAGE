@@ -1,0 +1,8 @@
+Revert "Use cache tags so all invoice entries can be flushed at once"
+
+This reverts commit {{SHA:02}}.
+
+Production uses the file cache store, which does not support tags. Every
+invoice page threw BadMethodCallException ("This cache store does not
+support tagging") from the moment this deployed until it was rolled back.
+INC-142.

@@ -41,6 +41,13 @@
       "source": "./plugins/engineering-review",
       "category": "productivity",
       "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+    },
+    {
+      "name": "regression-hunter",
+      "description": "Checks whether a change undoes what the repository's history already learned: removes a fix's guard, re-introduces reverted code, loosens a regression test, or leaves a usual partner file behind. Launches nothing when the history has nothing to say",
+      "source": "./plugins/regression-hunter",
+      "category": "productivity",
+      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
     }
   ]
 }

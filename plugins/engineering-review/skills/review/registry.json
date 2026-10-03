@@ -49,6 +49,21 @@
                   "*.spec.js", "*.spec.ts", "*.spec.jsx", "*.spec.tsx"]
     },
     {
+      "name": "regression-hunter",
+      "skill": "regression-hunter:hunt",
+      "kind": "review",
+      "output": "findings",
+      "prefixes": ["REG"],
+      "cost": "1 reviewer agent, only when fixes or reverts touched the changed lines",
+      "summary": "Whether the change undoes an earlier fix, re-introduces reverted code, loosens a regression test, or leaves a usual partner file behind.",
+      "include": ["**"],
+      "exclude": ["*.md", "*.rst", "*.txt", "*.adoc", "docs/**", "LICENSE*",
+                  "*.png", "*.jpg", "*.jpeg", "*.gif", "*.svg", "*.ico", "*.webp",
+                  "*.woff", "*.woff2", "*.ttf", "*.eot",
+                  "composer.lock", "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
+                  "poetry.lock", "Gemfile.lock", "go.sum", "Cargo.lock", "uv.lock"]
+    },
+    {
       "name": "test-gap-writer",
       "skill": "test-gap-writer:write-tests",
       "kind": "follow-up",

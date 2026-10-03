@@ -8,6 +8,7 @@ Claude Code plugins, installable from this repository as a local marketplace. Ea
 | `test-gap-writer` | Turns review findings into tests. One writer agent per finding writes the smallest test that proves it, runs it, and reports whether it reproduced the defect. A hook confines the writer to test files. | [README](plugins/test-gap-writer/README.md) · [CHANGELOG](plugins/test-gap-writer/CHANGELOG.md) |
 | `migration-safety` | Reviews database migrations for what breaks in production: the running release against the new schema during a deploy, table locks, data loss, constraints existing rows violate, missing rollbacks. A script finds the migrations first, so a change with none launches nothing. | [README](plugins/migration-safety/README.md) · [CHANGELOG](plugins/migration-safety/CHANGELOG.md) |
 | `change-impact` | Maps what a change touches and what reaches it: callers, routes, scheduled tasks, queued jobs, event listeners, the tests that reach it and the changed code none do, data and contracts. Facts, not a review. A script finds references first; one agent verifies them and finds what grep cannot. | [README](plugins/change-impact/README.md) · [CHANGELOG](plugins/change-impact/CHANGELOG.md) |
+| `regression-hunter` | Checks whether a change undoes what the history already learned: a fix's guard removed, reverted code re-introduced, a regression test loosened, a usual partner file left behind. A script reads the history first; one agent runs only when there is something to regress. | [README](plugins/regression-hunter/README.md) · [CHANGELOG](plugins/regression-hunter/CHANGELOG.md) |
 | `engineering-review` | Works out which of the plugins above a change needs, from the files it touches and with no model, and shows the plan: what would run and why, what is skipped and why, what to offer afterwards. Running the plan is the next step. | [README](plugins/engineering-review/README.md) · [CHANGELOG](plugins/engineering-review/CHANGELOG.md) |
 
 ## Installation
@@ -39,6 +40,7 @@ plugins/
   migration-safety/
   change-impact/
   engineering-review/
+  regression-hunter/
 shared/
   finding-contract/      the findings.json schema every plugin reads and writes,
                          and its validator; canonical copy, see its README

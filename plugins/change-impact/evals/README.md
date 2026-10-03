@@ -10,7 +10,21 @@ claude plugin eval --allow-tools Bash --ablation none --runs 1 --case 'recall-ro
 claude plugin eval --allow-tools Bash --ablation none --runs 1 .
 ```
 
-No baseline has been recorded yet.
+## Baseline
+
+Plugin 0.1.0, Claude Code 2.1.288, 2026-10-03, `--runs 1 --ablation none`: **5/5, about $2.00 API-equivalent**.
+
+| Case | Score | Cost | Seconds |
+|---|---|---|---|
+| nothing-to-map | 1 (judges 2 of 3) | $0.12 | 12 |
+| precision-name-collision | 1 | $0.41 | 70 |
+| recall-event-listener | 1 | $0.54 | 103 |
+| recall-route-job-schedule | 1 | $0.53 | 98 |
+| recall-untested | 1 | $0.49 | 69 |
+
+Every run was checked in its trace: the skill loaded, the analyst was launched in every case except `nothing-to-map` (no launch, as designed), and no sandbox error appeared. `recall-untested` was re-run on its own because the first attempt hit the account's session limit partway through, which the harness scores 0. One run per case shows each case *can* pass; record a `--runs 3` baseline before comparing changes.
+
+The first valid run scored 4/5. In `recall-route-job-schedule` the analyst found everything the grader asks for, but the lead replied with a prose summary instead of the map, and only the reply is graded, as only the reply is read. Step 4 now says the reply is the rendered report, and the case passes.
 
 ## The cases
 

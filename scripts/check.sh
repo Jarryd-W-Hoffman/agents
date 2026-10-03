@@ -12,13 +12,13 @@
 #
 # Code that several plugins carry a copy of lives canonically under shared/.
 # The shared checks run once, before the plugins: every copy matches its
-# canonical file, the canonical code's own tests pass, and engineering-review's
-# registry lists every plugin in the marketplace.
+# canonical file, the canonical code's own tests pass, and the review
+# plugin's registry lists every plugin in the marketplace.
 #
 #   ./scripts/check.sh                       everything, every plugin
 #   ./scripts/check.sh --manifests           only manifest/component validation (needs `claude`)
 #   ./scripts/check.sh --tests               only the Python suites (needs `python3`)
-#   ./scripts/check.sh [--tests] four-pass-review   one plugin
+#   ./scripts/check.sh [--tests] fourpass   one plugin
 #
 # Exits non-zero on the first failure.
 

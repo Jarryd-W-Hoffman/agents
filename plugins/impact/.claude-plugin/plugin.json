@@ -1,0 +1,19 @@
+{
+  "name": "impact",
+  "version": "0.1.0",
+  "description": "Maps what a change touches and what reaches it: callers, routes, scheduled tasks, queued jobs, event listeners, tests that reach it and changed code none do, data and contracts. A script finds the references; one read-only agent verifies them and finds what grep cannot. Facts, not a review",
+  "author": {
+    "name": "Jarryd Hoffman",
+    "email": "jarryd.hoffman@windowslive.com"
+  },
+  "homepage": "https://github.com/Jarryd-W-Hoffman/agents",
+  "repository": "https://github.com/Jarryd-W-Hoffman/agents",
+  "keywords": [
+    "impact-analysis",
+    "blast-radius",
+    "laravel",
+    "code-review",
+    "testing"
+  ],
+  "license": "MIT"
+}

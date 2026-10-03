@@ -46,7 +46,7 @@ class Valid(unittest.TestCase):
         self.assertEqual(fc.validate([]), [])
 
     def test_passes_are_open_ended(self):
-        for p in ("migration-safety", "adhoc", "completeness"):
+        for p in ("migrations", "adhoc", "completeness"):
             self.assertEqual(fc.validate([finding(**{"pass": p})]), [], p)
 
     def test_prefixes_are_open_ended(self):

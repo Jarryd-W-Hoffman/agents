@@ -10,7 +10,7 @@ script is the check that they have not, and the way to bring them back:
 
 Edit the canonical file, never a copy, then run --write. A canonical file
 is usually under shared/, but not always: the read-only guard's stays in
-four-pass-review beside its tests. The SHARED table below is the list. `scripts/check.sh`
+fourpass beside its tests. The SHARED table below is the list. `scripts/check.sh`
 runs the check, so CI fails on a copy that was edited in place.
 
 Standard library only; runs on Python 3.9.
@@ -28,25 +28,25 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONTRACT = "shared/finding-contract"
 CONTRACT_FILES = ("finding.schema.json", "finding_contract.py")
 
-# The read-only guard's canonical copy stays in four-pass-review, where its
+# The read-only guard's canonical copy stays in fourpass, where its
 # test suite lives; other plugins with read-only reviewers carry a copy.
-GUARD = "plugins/four-pass-review/hooks"
+GUARD = "plugins/fourpass/hooks"
 GUARD_FILES = ("readonly-guard.py", "guard/__init__.py", "guard/mcp.py",
                "guard/shell.py", "guard/tables.py", "guard/util.py")
 
 # canonical directory -> (file names in it, directories each plugin copy lives in)
 SHARED = {
     CONTRACT: (CONTRACT_FILES, (
-        "plugins/four-pass-review/skills/review/scripts",
-        "plugins/test-gap-writer/skills/write-tests/scripts",
-        "plugins/migration-safety/skills/check/scripts",
-        "plugins/engineering-review/skills/review/scripts",
-        "plugins/regression-hunter/skills/hunt/scripts",
+        "plugins/fourpass/skills/review/scripts",
+        "plugins/testgaps/skills/write/scripts",
+        "plugins/migrations/skills/check/scripts",
+        "plugins/review/scripts",
+        "plugins/regressions/skills/hunt/scripts",
     )),
     GUARD: (GUARD_FILES, (
-        "plugins/migration-safety/hooks",
-        "plugins/change-impact/hooks",
-        "plugins/regression-hunter/hooks",
+        "plugins/migrations/hooks",
+        "plugins/impact/hooks",
+        "plugins/regressions/hooks",
     )),
 }
 

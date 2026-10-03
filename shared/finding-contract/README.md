@@ -35,7 +35,7 @@ This directory is the canonical copy. Each plugin that writes or reads findings 
 | `title` | yes | One line, not empty. |
 | `severity` | yes | `critical`, `major` or `minor`. |
 | `confidence` | yes | Integer, 0 to 100. |
-| `pass` | yes | Lower-case, hyphens allowed: `correctness`, `migration-safety`. |
+| `pass` | yes | Lower-case, hyphens allowed: `correctness`, `migrations`. |
 | `path` | yes | Repository-relative. Not absolute, no `..` segment. |
 | `line` | yes | Integer from 1. A head-version line, or a base-version line when `side` is `LEFT`. |
 | `body` | yes | Why it matters and the key evidence. Not empty. |
@@ -50,13 +50,13 @@ No other fields. An unknown field is an error, so a typo such as `file` for `pat
 
 | Prefix | `pass` | Plugin |
 |---|---|---|
-| `CMP-` | `completeness` | four-pass-review |
-| `COR-` | `correctness` | four-pass-review |
-| `CPL-` | `compliance` | four-pass-review |
-| `CNS-` | `consistency` | four-pass-review |
-| `MIG-` | `migration-safety` | migration-safety |
-| `REG-` | `regression-hunter` | regression-hunter |
-| `ADHOC-` | `adhoc` | test-gap-writer, for a request typed in plain words |
+| `CMP-` | `completeness` | fourpass |
+| `COR-` | `correctness` | fourpass |
+| `CPL-` | `compliance` | fourpass |
+| `CNS-` | `consistency` | fourpass |
+| `MIG-` | `migrations` | migrations |
+| `REG-` | `regressions` | regressions |
+| `ADHOC-` | `adhoc` | testgaps, for a request typed in plain words |
 
 The contract does not enumerate passes, so a new plugin adds its own without a contract change. Pick a prefix nobody uses and add a row here.
 

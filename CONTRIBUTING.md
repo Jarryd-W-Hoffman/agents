@@ -24,7 +24,7 @@ python3 scripts/sync-shared.py --write
 
 `scripts/check.sh` runs the same script without `--write`, so CI fails when a copy has been edited in place or is missing. A plugin that starts carrying shared code gets a line in the `SHARED` table in that script.
 
-A canonical file does not have to live under `shared/`: the read-only guard's canonical copy stays in `plugins/four-pass-review/hooks/`, beside the test suite that covers it, and `migration-safety`, `change-impact` and `regression-hunter` carry copies.
+A canonical file does not have to live under `shared/`: the read-only guard's canonical copy stays in `plugins/fourpass/hooks/`, beside the test suite that covers it, and `migrations`, `impact` and `regressions` carry copies.
 
 The one shared contract today is `shared/finding-contract/`: the schema for `findings.json` and its validator. Any plugin that writes findings writes that shape and validates it; any plugin that reads findings validates them on the way in. See its README for the fields and the versioning rule.
 
@@ -34,7 +34,7 @@ The one shared contract today is `shared/finding-contract/`: the schema for `fin
 2. Add an entry to `.claude-plugin/marketplace.json` with `"source": "./plugins/<name>"`.
 3. Add a row to the table in the root `README.md`.
 4. Give it a `README.md`, a `CHANGELOG.md` starting at `[Unreleased]`, and tests under `tests/`.
-5. Add an entry to `plugins/engineering-review/skills/review/registry.json` saying which changed paths make the plugin relevant, and a row or two for it in the selection table in that plugin's `tests/test_plan.py`. `scripts/check-registry.py` fails CI until you do.
+5. Add an entry to `plugins/review/registry.json` saying which changed paths make the plugin relevant, and a row or two for it in the selection table in that plugin's `tests/test_plan.py`. `scripts/check-registry.py` fails CI until you do.
 6. Run `./scripts/check.sh <name>`. The script discovers plugins by their manifest, so no edit to it is needed.
 
 ## Before opening a PR

@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jarryd-W-Hoffman/agents/plugins/impact/impact.v1.schema.json",
+  "title": "Impact map, contract v1",
+  "description": "What impact writes as impact.json: what a change touches and what reaches it. Facts, not findings: there is no severity and nothing here says the change is wrong. Adding an optional field or widening an enum is a v1 change; anything else is v2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "target", "base", "head", "mode", "changed", "callers",
+               "entry_points", "tests", "data", "contracts", "risks", "limits"],
+  "properties": {
+    "version": {"type": "integer", "enum": [1]},
+    "target": {"type": "string", "minLength": 1},
+    "base": {"type": "string", "minLength": 1},
+    "head": {"type": "string", "minLength": 1},
+    "mode": {
+      "type": "string",
+      "enum": ["quick", "full"],
+      "description": "quick: the scan alone, unverified. full: verified and extended by the impact-analyst agent."
+    },
+    "changed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["symbol", "kind", "change", "path", "line"],
+        "properties": {
+          "symbol": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "enum": ["class", "method", "function", "file", "config", "other"]},
+          "change": {"type": "string", "enum": ["added", "modified", "removed"]},
+          "signature_changed": {"type": "boolean"},
+          "path": {"$ref": "#/$defs/path"},
+          "line": {"$ref": "#/$defs/line"}
+        }
+      }
+    },
+    "callers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "path", "line", "via", "hops", "verified"],
+        "properties": {
+          "target": {"type": "string", "minLength": 1, "description": "The changed symbol this reaches."},
+          "path": {"$ref": "#/$defs/path"},
+          "line": {"$ref": "#/$defs/line"},
+          "via": {"type": "string", "description": "The calling symbol, or empty when unknown."},
+          "hops": {"type": "integer", "minimum": 1, "maximum": 3},
+          "verified": {"type": "boolean", "description": "Read and confirmed to reach target, not only a name match."}
+        }
+      }
+    },
+    "entry_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "name", "path", "line", "reaches"],
+        "properties": {
+          "kind": {"type": "string", "enum": ["http", "console", "schedule", "queue", "event", "view",
+                                              "config", "container", "webhook", "other"]},
+          "name": {"type": "string", "minLength": 1, "description": "e.g. GET /invoices/{invoice}, invoices:remind, daily 08:00"},
+          "path": {"$ref": "#/$defs/path"},
+          "line": {"$ref": "#/$defs/line"},
+          "reaches": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["covering", "uncovered"],
+      "properties": {
+        "covering": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "reaches"],
+            "properties": {
+              "path": {"$ref": "#/$defs/path"},
+              "reaches": {"type": "array", "items": {"type": "string", "minLength": 1}}
+            }
+          }
+        },
+        "uncovered": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "name", "path", "line"],
+        "properties": {
+          "kind": {"type": "string", "enum": ["table", "column", "cache", "config", "env", "session",
+                                              "file", "other"]},
+          "name": {"type": "string", "minLength": 1},
+          "path": {"$ref": "#/$defs/path"},
+          "line": {"$ref": "#/$defs/line"}
+        }
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "name", "path", "line", "note"],
+        "properties": {
+          "kind": {"type": "string", "enum": ["api_response", "event_payload", "job_payload", "public_api",
+                                              "notification", "other"]},
+          "name": {"type": "string", "minLength": 1},
+          "path": {"$ref": "#/$defs/path"},
+          "line": {"$ref": "#/$defs/line"},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["area", "why", "evidence"],
+        "properties": {
+          "area": {"type": "string", "minLength": 1},
+          "why": {"type": "string", "minLength": 1},
+          "evidence": {
+            "type": "array",
+            "items": {"type": "string", "pattern": "^[^\\s:]+:[0-9]+(-[0-9]+)?$"},
+            "description": "path:line references the risk rests on. At least one."
+          }
+        }
+      }
+    },
+    "limits": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\])(?![A-Za-z]:)(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$)).+$",
+      "description": "Repository-relative. Not absolute, no '..' segment."
+    },
+    "line": {"type": "integer", "minimum": 1}
+  }
+}

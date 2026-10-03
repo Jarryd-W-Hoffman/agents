@@ -1,0 +1,18 @@
+{
+  "name": "review",
+  "version": "0.1.0",
+  "description": "Works out which of this marketplace's plugins a change needs, from the files it touches and with no model, and shows the plan: what would run, what is skipped and why, and what to offer afterwards. Running the plan comes next",
+  "author": {
+    "name": "Jarryd Hoffman",
+    "email": "jarryd.hoffman@windowslive.com"
+  },
+  "homepage": "https://github.com/Jarryd-W-Hoffman/agents",
+  "repository": "https://github.com/Jarryd-W-Hoffman/agents",
+  "keywords": [
+    "orchestrator",
+    "code-review",
+    "workflow",
+    "agents"
+  ],
+  "license": "MIT"
+}

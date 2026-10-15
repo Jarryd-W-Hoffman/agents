@@ -40,12 +40,14 @@ Usage:
                   incremental re-review (`/review <n> --since last`).
 
 Re-running is expected: review, push fixes, review again. By default an
-earlier review from this tool is superseded (its body is blanked and its
-inline comments deleted) so the PR does not collect duplicates. A submitted
-review cannot be deleted through the API; a --mode summary comment is an
-ordinary issue comment and is edited in place instead. The footer records
-which commit was reviewed, and superseding preserves it, so --last-reviewed
-can still answer what has already been covered.
+earlier review from this tool is superseded: its body is replaced with a
+note pointing at the newer review, so the PR has one current report. Its
+inline comments are left in place, so the record of what was raised on
+which line, and any discussion under it, survives the re-review. A
+submitted review cannot be deleted through the API; a --mode summary
+comment is an ordinary issue comment and is edited in place instead. The
+footer records which commit was reviewed, and superseding preserves it, so
+--last-reviewed can still answer what has already been covered.
 
 findings.json is a list of objects in the finding contract, defined by
 finding.schema.json beside this script and checked before anything is posted:
@@ -360,11 +362,16 @@ def build_summary_body(findings: list[dict], summary: str,
 # --------------------------------------------------------------------------
 #
 # Re-reviewing is the normal case: review, push fixes, review again. Without
-# this the PR collects a new review and a duplicate set of inline comments
-# every time. GitHub will not let a submitted review be deleted, so "replace"
-# means supersede: blank the old review's body, drop its inline comments, then
-# post the new one. A `--mode summary` comment is an issue comment, which can
-# be edited in place, so that case is a true update.
+# this the PR collects a new top-level report every time and nothing says
+# which one is current. GitHub will not let a submitted review be deleted, so
+# "replace" means supersede: replace the old review's body with a note that a
+# newer review exists, then post the new one. The old review's inline comments
+# are deliberately left alone. They are the trace of what was raised where,
+# and of any discussion the author had under them; deleting them would erase
+# that, and GitHub shows them under the superseded note anyway, so a reader
+# can tell at a glance which round they belong to. A `--mode summary` comment
+# is an issue comment, which can be edited in place, so that case is a true
+# update.
 
 SUPERSEDED_NOTE = "_Superseded by a newer four-pass review._"
 
@@ -373,10 +380,11 @@ def find_prior_reviews(reviews: list[dict], login: str,
                        include_superseded: bool = False) -> list[dict]:
     """Reviews this tool posted as `login`: our footer, and ours to edit.
 
-    `login` is required, not optional. Superseding deletes inline comments,
-    which cannot be undone, so a review is only ever a candidate when we can
-    prove whose it is. Matching on the footer alone would mean that a failed
-    `gh api user` call is enough to start deleting another account's comments.
+    `login` is required, not optional. Superseding overwrites a review body,
+    and GitHub keeps no history of it, so a review is only ever a candidate
+    when we can prove whose it is. Matching on the footer alone would mean
+    that a failed `gh api user` call is enough to start rewriting another
+    account's reviews.
     """
     out = []
     for r in reviews:
@@ -402,13 +410,7 @@ def find_prior_comment(comments: list[dict], login: str) -> dict | None:
 def unknown_login_warning(action: str) -> str:
     return (f"could not confirm the authenticated account (`gh api user` failed); "
             f"not {action} an earlier review. Leaving a duplicate is better than "
-            f"editing or deleting something we cannot prove is ours.")
-
-
-def stale_comment_ids(review_comments: list[dict], review_ids: set[int]) -> list[int]:
-    """Inline comments belonging to the given reviews."""
-    return [c["id"] for c in review_comments
-            if c.get("pull_request_review_id") in review_ids and "id" in c]
+            f"editing something we cannot prove is ours.")
 
 
 def gh(*args: str, input_text: str | None = None) -> str:
@@ -497,7 +499,10 @@ def current_login() -> str | None:
 
 
 def supersede_reviews(owner_repo: str, pr: str, reviews: list[dict]) -> None:
-    """Blank out earlier reviews from this tool and delete their inline comments.
+    """Replace the body of each earlier review from this tool with a superseded note.
+
+    Inline comments are not touched: they stay on the PR as the record of
+    what each round raised, and of any replies under them.
 
     Best effort throughout: a PR we cannot tidy is still a PR we should post
     the new review to, so every failure here warns and continues.
@@ -505,13 +510,6 @@ def supersede_reviews(owner_repo: str, pr: str, reviews: list[dict]) -> None:
     by_id = {r["id"]: r for r in reviews if "id" in r}
     if not by_id:
         return
-    comments = gh_json("api", "--paginate", f"repos/{owner_repo}/pulls/{pr}/comments")
-    for comment_id in stale_comment_ids(comments, set(by_id)):
-        try:
-            gh("api", "--method", "DELETE",
-               f"repos/{owner_repo}/pulls/comments/{comment_id}")
-        except RuntimeError as e:
-            print(f"could not delete stale comment {comment_id}: {e}", file=sys.stderr)
     for review_id in sorted(by_id):
         # Keep the `reviewed at <sha>` marker: it is how a later run works out
         # what has already been covered. Blanking it would make every

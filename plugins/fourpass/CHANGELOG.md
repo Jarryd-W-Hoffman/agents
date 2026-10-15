@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Superseding an earlier review no longer deletes its inline comments.** Re-running `--comment` on a PR still replaces the earlier review's body with a "superseded" note, so there is one current report, but the inline comments it left now stay on the PR. They are the trace of what each round raised on which line and of any discussion the author had under them, and GitHub groups them under the superseded note, so which round they belong to is still clear. `stale_comment_ids()` is gone from `post-review.py` with nothing calling it.
 - **Renamed from `four-pass-review` to `fourpass`, so commands read as subject and verb: `/four-pass-review:review` is now `/fourpass:review`.** Reinstall with `/plugin install fourpass@jarrydh-agents`; agent types are now `fourpass:<agent>`, with the agent names unchanged. Finding ID prefixes are unchanged.
 - **`post-review.py` validates `findings.json` against the finding contract and refuses to post one that breaks it** (exit 2, one error per line naming the finding and field, nothing sent). `severity`, `confidence`, `pass` and `body` are now required where they were optional before, and unknown fields are refused, so a typo such as `file` for `path` no longer posts a comment with no location.
 

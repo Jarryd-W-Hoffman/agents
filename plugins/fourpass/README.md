@@ -63,8 +63,9 @@ Restart Claude Code after installing. The agents appear in `/agents`; the skill 
 ```
 
 Re-reviewing the same PR is the normal case, so `--comment` supersedes its own
-earlier review rather than stacking a duplicate set of inline comments on it,
-and records which commit it reviewed. `--since last` then reviews only what has
+earlier review's summary rather than stacking a second report on it, keeps that
+review's inline comments in place as the trace of what each round raised, and
+records which commit it reviewed. `--since last` then reviews only what has
 landed since — the report says it was incremental, so a clean result is not
 mistaken for a verdict on the whole change.
 A finding may carry a `suggestion`, which posts as a GitHub suggestion block

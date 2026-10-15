@@ -450,7 +450,7 @@ class PriorRuns(unittest.TestCase):
         self.assertEqual(pr.find_prior_reviews(reviews, "me"), [])
 
     def test_footer_alone_is_not_enough_to_supersede(self):
-        # Superseding deletes inline comments, which cannot be undone. A review
+        # Superseding overwrites a review body, which cannot be undone. A review
         # is only a candidate when we can prove whose it is, so an account we
         # are not signed in as is never matched on the footer alone.
         reviews = [self.review(5, f"report\n\n{pr.FOOTER}\n", login="whoever")]
@@ -471,15 +471,6 @@ class PriorRuns(unittest.TestCase):
     def test_no_prior_comment(self):
         self.assertIsNone(pr.find_prior_comment([{"id": 1, "body": "x",
                                                   "user": {"login": "me"}}], "me"))
-
-    def test_stale_comment_ids_are_scoped_to_our_reviews(self):
-        comments = [
-            {"id": 10, "pull_request_review_id": 2},
-            {"id": 11, "pull_request_review_id": 99},
-            {"id": 12, "pull_request_review_id": 2},
-        ]
-        self.assertEqual(pr.stale_comment_ids(comments, {2}), [10, 12])
-
 
 class OfflineDryRun(unittest.TestCase):
     """--dry-run with a saved diff must not touch the network."""
@@ -589,7 +580,7 @@ class GhStub:
 
 
 class Supersede(unittest.TestCase):
-    """Superseding deletes comments, so its failure modes matter more than most."""
+    """Superseding rewrites a review body, so its failure modes matter more than most."""
 
     def setUp(self):
         self.real_gh, self.real_gh_json = pr.gh, pr.gh_json
@@ -602,7 +593,10 @@ class Supersede(unittest.TestCase):
         pr.gh_json = lambda *a: comments
         return stub
 
-    def test_deletes_only_our_comments_then_blanks_the_review(self):
+    def test_blanks_the_review_and_leaves_its_inline_comments_alone(self):
+        # The inline comments are the trace of what an earlier round raised
+        # and of any discussion under them. Superseding must never delete or
+        # edit them, only replace the review body.
         comments = [
             {"id": 10, "pull_request_review_id": 7},
             {"id": 11, "pull_request_review_id": 999},   # someone else's review
@@ -610,18 +604,18 @@ class Supersede(unittest.TestCase):
         stub = self.install(comments)
         pr.supersede_reviews("o/r", "1", [{"id": 7}])
         self.assertEqual(stub.methods(), [
-            ("DELETE", "repos/o/r/pulls/comments/10"),
             ("PUT", "repos/o/r/pulls/1/reviews/7"),
         ])
+        self.assertFalse(any("pulls/comments/" in a for call in stub.calls for a in call),
+                         "superseding touched an inline comment")
 
-    def test_a_failed_delete_does_not_stop_the_rest(self):
-        comments = [{"id": 10, "pull_request_review_id": 7}]
-        stub = self.install(comments, fail=["pulls/comments/10"])
-        with contextlib.redirect_stderr(io.StringIO()) as err:
-            pr.supersede_reviews("o/r", "1", [{"id": 7}])
-        # the review body is still blanked even though the delete failed
-        self.assertIn(("PUT", "repos/o/r/pulls/1/reviews/7"), stub.methods())
-        self.assertIn("could not delete stale comment 10", err.getvalue())
+    def test_superseding_several_reviews_touches_only_their_bodies(self):
+        stub = self.install([])
+        pr.supersede_reviews("o/r", "1", [{"id": 9}, {"id": 7}])
+        self.assertEqual(stub.methods(), [
+            ("PUT", "repos/o/r/pulls/1/reviews/7"),
+            ("PUT", "repos/o/r/pulls/1/reviews/9"),
+        ])
 
     def test_a_failed_put_is_reported_not_raised(self):
         stub = self.install([], fail=["reviews/7"])

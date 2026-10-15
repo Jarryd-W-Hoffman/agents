@@ -5,7 +5,7 @@ The unit suite stubs `gh`, so it proves the logic and nothing about whether
 that logic matches what GitHub actually returns. These run the real `gh`
 commands and assert the shapes the script depends on: that `pr view --json`
 carries the fields it reads, that `pr diff` parses into anchorable lines, and
-that the review and comment listings look the way the supersede path expects.
+that the review listing looks the way the supersede path expects.
 
 Nothing here writes. There is no POST, PATCH, PUT or DELETE, and the review
 payload is only ever built and printed, never sent.
@@ -96,15 +96,6 @@ class AgainstRealGitHub(unittest.TestCase):
             self.assertIn("id", r)
             self.assertIn("user", r)
             self.assertIn("login", r.get("user") or {})
-
-    def test_comment_listing_carries_the_review_id_we_filter_on(self):
-        comments = pr.gh_json("api", "--paginate",
-                              f"repos/{self.owner_repo}/pulls/{PR}/comments")
-        self.assertIsInstance(comments, list)
-        for c in comments[:5]:
-            self.assertIn("id", c)
-            # the key stale_comment_ids() groups by
-            self.assertIn("pull_request_review_id", c)
 
     def test_current_login_resolves(self):
         # Superseding refuses to touch anything when this returns None, so an

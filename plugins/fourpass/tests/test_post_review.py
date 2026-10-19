@@ -166,8 +166,24 @@ class BuildReview(unittest.TestCase):
         self.assertEqual((c["path"], c["line"], c["side"]), ("app/Exporter.php", 13, "RIGHT"))
         self.assertIn("**[COR-1] Null customer**", c["body"])
         self.assertIn("critical · confidence 92 · correctness", c["body"])
-        self.assertIn("**Suggested fix:** Guard it.", c["body"])
+        self.assertIn("<details>\n<summary>Suggested fix</summary>\n\nGuard it.\n\n</details>",
+                      c["body"])
+        self.assertNotIn("**Suggested fix:**", c["body"])
         self.assertIn(pr.FOOTER, payload["body"])
+
+    def test_no_fix_means_no_details(self):
+        f = self.finding()
+        del f["fix"]
+        payload, _ = pr.build_review([f], self.summary, self.files, "abc")
+        self.assertNotIn("<details>", payload["comments"][0]["body"])
+
+    def test_suggestion_block_stays_outside_the_details(self):
+        # A ```suggestion block hidden in a collapsed section is easy to miss,
+        # and it is the one-click fix, so it follows the details element.
+        payload, _ = pr.build_review([self.finding(suggestion="x")], self.summary,
+                                     self.files, "abc")
+        body = payload["comments"][0]["body"]
+        self.assertLess(body.index("</details>"), body.index("```suggestion"))
 
     def test_multiline_range_same_hunk(self):
         payload, _ = pr.build_review([self.finding(line=12, end_line=14)], self.summary, self.files, "abc")
@@ -381,6 +397,60 @@ class Suggestions(unittest.TestCase):
         self.assertIn("```suggestion\n\n```", payload["comments"][0]["body"])
 
 
+class Diagram(unittest.TestCase):
+    """The mermaid diagram of the change closes the summary, just above the footer."""
+
+    MERMAID = "flowchart LR\n  A[\"Request\"] --> B[\"Exporter\"]"
+    SECTION = f"### {pr.DIAGRAM_HEADING}\n\n```mermaid\n{MERMAID}\n```\n"
+
+    def setUp(self):
+        self.files = pr.parse_diff(DIFF)
+        self.unanchored = {"id": "CNS-1", "title": "t", "path": "app/Exporter.php",
+                           "line": 9999}
+
+    def test_review_body_ends_with_the_diagram_then_the_footer(self):
+        payload, _ = pr.build_review([self.unanchored], "s", self.files, "abc",
+                                     diagram=self.MERMAID)
+        body = payload["body"]
+        self.assertTrue(body.endswith(f"{self.SECTION}\n{pr.footer_line('abc')}\n"))
+        self.assertLess(body.index(pr.UNANCHORED_HEADING), body.index(pr.DIAGRAM_HEADING))
+
+    def test_summary_body_ends_with_the_diagram_then_the_footer(self):
+        body = pr.build_summary_body([self.unanchored], "s", "abc", self.MERMAID)
+        self.assertTrue(body.endswith(f"{self.SECTION}\n{pr.footer_line('abc')}\n"))
+        self.assertLess(body.index(pr.SUMMARY_HEADING), body.index(pr.DIAGRAM_HEADING))
+
+    def test_an_already_fenced_diagram_is_not_fenced_twice(self):
+        fenced = f"```mermaid\n{self.MERMAID}\n```\n"
+        self.assertEqual(pr._diagram_section(fenced), "\n" + self.SECTION)
+
+    def test_no_diagram_renders_nothing(self):
+        for empty in (None, "", "  \n", "```mermaid\n```"):
+            self.assertEqual(pr._diagram_section(empty), "")
+        payload, _ = pr.build_review([], "s", {}, "abc")
+        self.assertNotIn("```mermaid", payload["body"])
+
+    def test_the_422_fallback_keeps_the_diagram(self):
+        real = pr.post_review
+        self.addCleanup(setattr, pr, "post_review", real)
+        bodies = []
+
+        def fake(owner_repo, prnum, payload):
+            bodies.append(payload["body"])
+            if payload["comments"]:
+                raise RuntimeError("422 Unprocessable Entity")
+            return {"html_url": "u"}
+
+        pr.post_review = fake
+        findings = [{"id": "COR-1", "title": "t", "path": "app/Exporter.php", "line": 13}]
+        payload, _ = pr.build_review(findings, "s", self.files, "abc", diagram=self.MERMAID)
+        with contextlib.redirect_stderr(io.StringIO()):
+            pr.post_review_with_fallbacks("o/r", "1", payload, findings, "s", "abc",
+                                          self.MERMAID)
+        self.assertEqual(len(bodies), 2)
+        self.assertIn(self.SECTION, bodies[1])
+
+
 class ReviewedMarker(unittest.TestCase):
     """The footer records the reviewed head, so a re-review knows what it covered."""
 
@@ -517,6 +587,17 @@ class OfflineDryRun(unittest.TestCase):
         code, out = self.run_main("--mode", "summary")
         self.assertEqual(code, 0)
         self.assertIn(pr.FOOTER, out)
+
+    def test_diagram_flag_reaches_both_modes(self):
+        diagram = os.path.join(self.tmp, "diagram.mmd")
+        with open(diagram, "w", encoding="utf-8") as fh:
+            fh.write("flowchart LR\n  A --> B\n")
+        code, out = self.run_main("--diagram", diagram)
+        self.assertEqual(code, 0)
+        self.assertIn("```mermaid\nflowchart LR\n  A --> B\n```", json.loads(out)["body"])
+        code, out = self.run_main("--mode", "summary", "--diagram", diagram)
+        self.assertEqual(code, 0)
+        self.assertIn("```mermaid\nflowchart LR\n  A --> B\n```", out)
 
     def write_findings(self, findings):
         with open(self.findings, "w", encoding="utf-8") as fh:

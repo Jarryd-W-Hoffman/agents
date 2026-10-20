@@ -139,16 +139,24 @@ If `--comment` was given and the target is a PR, post it with the helper script,
 
 1. Use the `findings.json` you just validated. The script validates it again and refuses to post one that breaks the contract.
 2. Write `summary.md` in the same directory: the report's header block and the "Pass summaries" section only (no findings; they become the inline comments).
-3. Dry-run first, then post:
+3. Write `diagram.mmd` in the same directory: a mermaid diagram of what the change does, which the script posts as the last section of the summary, under "What this change does". It is the picture a reviewer wants before reading the diff, so draw the change, not the review: the components, functions or steps the change adds or alters and how control or data moves between them. Take it from the PR title and body, the diff (`--stat` and the hunks), and what the reviewers reported. Drawing it is describing the change, not reviewing it, so read only what you need to draw it accurately, and draw nothing you have not seen in the change.
+   - Use a `flowchart` (`LR` or `TD`) by default, or a `sequenceDiagram` when the change is about an ordered exchange between parties (a request through services, a job and its callbacks). Write the bare diagram, no ```` ``` ```` fence; the script adds it.
+   - Keep it to about 12 nodes. Group by file or module with `subgraph` when that helps, and leave out what the change does not touch.
+   - Quote every label (`A["InvoiceExporter::export()"]`): parentheses, colons and arrows in an unquoted label break the render, and GitHub then shows an error box instead of the diagram.
+   - Mark new nodes with `:::added` and changed ones with `:::changed`, defining both with `classDef` (`classDef added stroke:#2da44e,stroke-width:2px` and `classDef changed stroke:#bf8700,stroke-width:2px`). Where a critical or major finding sits on a node, add its ID to the label (`["export() · COR-1"]`) so the diagram points at the inline comment.
+   - If the change has no flow worth drawing (a typo fix, a version bump, a docs-only change), skip the file and the flag.
+4. Dry-run first, then post:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/post-review.py" --pr <n> --findings <dir>/findings.json --summary <dir>/summary.md --dry-run
-python3 "${CLAUDE_SKILL_DIR}/scripts/post-review.py" --pr <n> --findings <dir>/findings.json --summary <dir>/summary.md
+python3 "${CLAUDE_SKILL_DIR}/scripts/post-review.py" --pr <n> --findings <dir>/findings.json --summary <dir>/summary.md --diagram <dir>/diagram.mmd --dry-run
+python3 "${CLAUDE_SKILL_DIR}/scripts/post-review.py" --pr <n> --findings <dir>/findings.json --summary <dir>/summary.md --diagram <dir>/diagram.mmd
 ```
+
+Each inline comment leads with the finding and its evidence; a finding's `fix` is folded into a collapsed "Suggested fix" section beneath it, and a `suggestion` block, when there is one, follows that section.
 
 A finding may also carry `suggestion`: the literal replacement text for its anchored lines, rendered as a GitHub ```suggestion block the author can commit in one click. Give it only when the fix really is a drop-in replacement for exactly those lines, and only on a head-side finding — it is dropped for `side: "LEFT"` and for findings outside the diff, which GitHub cannot apply a suggestion to.
 
-Re-running is expected, so the script supersedes its own earlier review by default: it blanks that review's body and deletes its inline comments before posting the new one, which keeps the PR from collecting duplicates. `--on-existing skip` leaves the PR alone and `--on-existing add` posts anyway. In `--comment=summary` mode the earlier comment is edited in place instead. The dry run reports what it would supersede.
+Re-running is expected, so the script supersedes its own earlier review by default: it replaces that review's body with a note that a newer review exists, then posts the new one, so the PR has one current report. The earlier review's inline comments are left in place for traceability: they record what each round raised on which line, and any discussion under them, and GitHub shows them under the superseded note so a reader can tell which round they belong to. `--on-existing skip` leaves the PR alone and `--on-existing add` posts anyway. In `--comment=summary` mode the earlier comment is edited in place instead. The dry run reports what it would supersede.
 
 The script parses the PR diff and anchors each finding to its line on the head commit. GitHub can only anchor lines that appear in the diff, so findings on other lines are listed in the review body under "Findings outside the diff"; the dry run shows which. With `--comment=summary`, pass `--mode summary` to post one ordinary comment instead. Both modes refuse a PR that is not open. Tell the user the review URL the script prints.
 
@@ -158,7 +166,7 @@ Do not post otherwise. Do not post if the verdict could not be computed or the P
 
 ## Rules
 
-- **Read-only.** Never edit files in the repository, run builds, tests, formatters or type-checkers, and never check out a different ref in the user's working tree. The temporary files (`report.md`, `findings.json`, and `summary.md` for `--comment`) live outside the working tree; `Write` is in this skill's `allowed-tools` for those files and nothing else. If the user wants fixes, that is a separate follow-up after the report.
+- **Read-only.** Never edit files in the repository, run builds, tests, formatters or type-checkers, and never check out a different ref in the user's working tree. The temporary files (`report.md`, `findings.json`, and `summary.md` and `diagram.mmd` for `--comment`) live outside the working tree; `Write` is in this skill's `allowed-tools` for those files and nothing else. If the user wants fixes, that is a separate follow-up after the report.
 - **Reviewers are read-only by enforcement, not just instruction.** The plugin's PreToolUse guard (`hooks/readonly-guard.py`) denies edits, state-changing shell commands and write-style MCP tools for the four reviewer agents, and auto-allows recognised reads. If a reviewer reports that something was denied, treat the gap as a Note, not a reason to do the write yourself. The only write this skill ever performs outside its temporary directory is the optional `--comment` post, done by you, the lead.
 - **Do not review yourself.** Your value is orchestration and synthesis; the passes are the reviewers.
 - **Do not paste large diffs into briefs.** Give commands.

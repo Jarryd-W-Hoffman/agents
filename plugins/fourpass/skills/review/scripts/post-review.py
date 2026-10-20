@@ -28,6 +28,8 @@ Usage:
   --mode inline   (default) one review with inline comments
   --mode summary  one ordinary PR comment containing the whole report
   --verdict X     override the verdict; default reads it from summary.md
+  --diagram F     mermaid source drawing what the change does; rendered as
+                  the last section of the review body (or summary comment)
   --dry-run       print the payload and the anchoring report; post nothing
   --repo o/r      override the owner/repo (defaults to the PR's URL)
   --on-existing   what to do when this tool already reviewed this PR:
@@ -40,12 +42,14 @@ Usage:
                   incremental re-review (`/review <n> --since last`).
 
 Re-running is expected: review, push fixes, review again. By default an
-earlier review from this tool is superseded (its body is blanked and its
-inline comments deleted) so the PR does not collect duplicates. A submitted
-review cannot be deleted through the API; a --mode summary comment is an
-ordinary issue comment and is edited in place instead. The footer records
-which commit was reviewed, and superseding preserves it, so --last-reviewed
-can still answer what has already been covered.
+earlier review from this tool is superseded: its body is replaced with a
+note pointing at the newer review, so the PR has one current report. Its
+inline comments are left in place, so the record of what was raised on
+which line, and any discussion under it, survives the re-review. A
+submitted review cannot be deleted through the API; a --mode summary
+comment is an ordinary issue comment and is edited in place instead. The
+footer records which commit was reviewed, and superseding preserves it, so
+--last-reviewed can still answer what has already been covered.
 
 findings.json is a list of objects in the finding contract, defined by
 finding.schema.json beside this script and checked before anything is posted:
@@ -264,8 +268,12 @@ def _comment_body(f: dict, allow_suggestion: bool = False) -> str:
     parts = [f"**[{f['id']}] {f['title']}**" + (f"\n{meta}" if meta else "")]
     if f.get("body"):
         parts.append(str(f["body"]).strip())
+    # The fix is collapsed so the comment leads with the problem; the reader
+    # opens it when they are ready to act. The blank lines inside <details>
+    # are what make GitHub render the fix as markdown rather than raw text.
     if f.get("fix"):
-        parts.append(f"**Suggested fix:** {str(f['fix']).strip()}")
+        parts.append("<details>\n<summary>Suggested fix</summary>\n\n"
+                     f"{str(f['fix']).strip()}\n\n</details>")
     # A `suggestion` block turns the finding into a commit the author can apply
     # in one click. GitHub only honours it on an inline comment anchored to the
     # head side, so it is dropped everywhere else rather than rendered as a
@@ -291,6 +299,25 @@ def _findings_section(heading: str, findings: list[dict]) -> str:
     if not findings:
         return ""
     return f"\n### {heading}\n\n" + "\n".join(_body_bullet(f) for f in findings) + "\n"
+
+
+DIAGRAM_HEADING = "What this change does"
+_FENCE_RE = re.compile(r"\A\s*```\s*mermaid[^\n]*\n(.*?)\s*```\s*\Z", re.S)
+
+
+def _diagram_section(source: str | None) -> str:
+    """Render mermaid source as the closing '### heading' block, or '' when there is none.
+
+    Accepts the bare diagram or one already wrapped in a ```mermaid fence, so
+    a lead that fences it out of habit does not post a fence inside a fence.
+    """
+    text = (source or "").strip()
+    m = _FENCE_RE.match(text)
+    if m:
+        text = m.group(1).strip()
+    if not text:
+        return ""
+    return f"\n### {DIAGRAM_HEADING}\n\n```mermaid\n{text}\n```\n"
 
 
 def _check_required(f: dict) -> None:
@@ -320,7 +347,8 @@ def _anchor(f: dict, fl: FileLines) -> dict | None:
 
 def build_review(findings: list[dict], summary: str, diff_files: dict[str, FileLines],
                  commit_id: str, heading: str = UNANCHORED_HEADING,
-                 event: str = DEFAULT_EVENT) -> tuple[dict, list[dict]]:
+                 event: str = DEFAULT_EVENT,
+                 diagram: str | None = None) -> tuple[dict, list[dict]]:
     """Return (payload, unanchored_findings); `heading` titles the body section for the latter."""
     comments: list[dict] = []
     unanchored: list[dict] = []
@@ -336,19 +364,21 @@ def build_review(findings: list[dict], summary: str, diff_files: dict[str, FileL
         comments.append({"path": path, "body": _comment_body(f, allow_suggestion=on_head),
                          **anchor})
 
+    # The diagram closes the body, after any unanchored findings, so the
+    # verdict and the findings are what a reader meets first.
     body = (summary.rstrip() + "\n" + _findings_section(heading, unanchored)
-            + f"\n{footer_line(commit_id)}\n")
+            + _diagram_section(diagram) + f"\n{footer_line(commit_id)}\n")
     payload = {"commit_id": commit_id, "event": event, "body": body, "comments": comments}
     return payload, unanchored
 
 
 def build_summary_body(findings: list[dict], summary: str,
-                       head_sha: str | None = None) -> str:
+                       head_sha: str | None = None, diagram: str | None = None) -> str:
     """Return the single-comment report used by --mode summary (every finding as a body bullet)."""
     for f in findings:
         _check_required(f)
     return (summary.rstrip() + "\n" + _findings_section(SUMMARY_HEADING, findings)
-            + f"\n{footer_line(head_sha)}\n")
+            + _diagram_section(diagram) + f"\n{footer_line(head_sha)}\n")
 
 
 # --------------------------------------------------------------------------
@@ -360,11 +390,16 @@ def build_summary_body(findings: list[dict], summary: str,
 # --------------------------------------------------------------------------
 #
 # Re-reviewing is the normal case: review, push fixes, review again. Without
-# this the PR collects a new review and a duplicate set of inline comments
-# every time. GitHub will not let a submitted review be deleted, so "replace"
-# means supersede: blank the old review's body, drop its inline comments, then
-# post the new one. A `--mode summary` comment is an issue comment, which can
-# be edited in place, so that case is a true update.
+# this the PR collects a new top-level report every time and nothing says
+# which one is current. GitHub will not let a submitted review be deleted, so
+# "replace" means supersede: replace the old review's body with a note that a
+# newer review exists, then post the new one. The old review's inline comments
+# are deliberately left alone. They are the trace of what was raised where,
+# and of any discussion the author had under them; deleting them would erase
+# that, and GitHub shows them under the superseded note anyway, so a reader
+# can tell at a glance which round they belong to. A `--mode summary` comment
+# is an issue comment, which can be edited in place, so that case is a true
+# update.
 
 SUPERSEDED_NOTE = "_Superseded by a newer four-pass review._"
 
@@ -373,10 +408,11 @@ def find_prior_reviews(reviews: list[dict], login: str,
                        include_superseded: bool = False) -> list[dict]:
     """Reviews this tool posted as `login`: our footer, and ours to edit.
 
-    `login` is required, not optional. Superseding deletes inline comments,
-    which cannot be undone, so a review is only ever a candidate when we can
-    prove whose it is. Matching on the footer alone would mean that a failed
-    `gh api user` call is enough to start deleting another account's comments.
+    `login` is required, not optional. Superseding overwrites a review body,
+    and GitHub keeps no history of it, so a review is only ever a candidate
+    when we can prove whose it is. Matching on the footer alone would mean
+    that a failed `gh api user` call is enough to start rewriting another
+    account's reviews.
     """
     out = []
     for r in reviews:
@@ -402,13 +438,7 @@ def find_prior_comment(comments: list[dict], login: str) -> dict | None:
 def unknown_login_warning(action: str) -> str:
     return (f"could not confirm the authenticated account (`gh api user` failed); "
             f"not {action} an earlier review. Leaving a duplicate is better than "
-            f"editing or deleting something we cannot prove is ours.")
-
-
-def stale_comment_ids(review_comments: list[dict], review_ids: set[int]) -> list[int]:
-    """Inline comments belonging to the given reviews."""
-    return [c["id"] for c in review_comments
-            if c.get("pull_request_review_id") in review_ids and "id" in c]
+            f"editing something we cannot prove is ours.")
 
 
 def gh(*args: str, input_text: str | None = None) -> str:
@@ -455,7 +485,8 @@ def post_review(owner_repo: str, pr: str, payload: dict) -> dict:
 
 
 def post_review_with_fallbacks(owner_repo: str, pr: str, payload: dict, findings: list[dict],
-                              summary: str, head_sha: str) -> dict:
+                              summary: str, head_sha: str,
+                              diagram: str | None = None) -> dict:
     """Post the review, degrading when GitHub refuses the event or an anchor."""
     for _ in range(3):
         try:
@@ -473,7 +504,8 @@ def post_review_with_fallbacks(owner_repo: str, pr: str, payload: dict, findings
                 print(f"inline anchoring rejected ({text}); retrying as body-only review",
                       file=sys.stderr)
                 payload, _ = build_review(findings, summary, {}, head_sha,
-                                          heading=FALLBACK_HEADING, event=payload["event"])
+                                          heading=FALLBACK_HEADING, event=payload["event"],
+                                          diagram=diagram)
                 continue
             raise
     raise RuntimeError("gave up posting the review after retrying")
@@ -497,7 +529,10 @@ def current_login() -> str | None:
 
 
 def supersede_reviews(owner_repo: str, pr: str, reviews: list[dict]) -> None:
-    """Blank out earlier reviews from this tool and delete their inline comments.
+    """Replace the body of each earlier review from this tool with a superseded note.
+
+    Inline comments are not touched: they stay on the PR as the record of
+    what each round raised, and of any replies under them.
 
     Best effort throughout: a PR we cannot tidy is still a PR we should post
     the new review to, so every failure here warns and continues.
@@ -505,13 +540,6 @@ def supersede_reviews(owner_repo: str, pr: str, reviews: list[dict]) -> None:
     by_id = {r["id"]: r for r in reviews if "id" in r}
     if not by_id:
         return
-    comments = gh_json("api", "--paginate", f"repos/{owner_repo}/pulls/{pr}/comments")
-    for comment_id in stale_comment_ids(comments, set(by_id)):
-        try:
-            gh("api", "--method", "DELETE",
-               f"repos/{owner_repo}/pulls/comments/{comment_id}")
-        except RuntimeError as e:
-            print(f"could not delete stale comment {comment_id}: {e}", file=sys.stderr)
     for review_id in sorted(by_id):
         # Keep the `reviewed at <sha>` marker: it is how a later run works out
         # what has already been covered. Blanking it would make every
@@ -573,6 +601,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--last-reviewed", action="store_true",
                     help="print the head sha this tool last reviewed on this PR "
                          "and exit; exits 1 with no output when there is none")
+    ap.add_argument("--diagram", help="path to a mermaid diagram of the change, "
+                                      "posted as the last section of the summary")
     ap.add_argument("--dry-run", action="store_true", help="print payload, post nothing")
     args = ap.parse_args(argv)
     if not args.last_reviewed and not (args.findings and args.summary):
@@ -606,6 +636,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     with open(args.summary, encoding="utf-8") as fh:
         summary = fh.read()
+    diagram = None
+    if args.diagram:
+        with open(args.diagram, encoding="utf-8") as fh:
+            diagram = fh.read()
 
     verdict = args.verdict or verdict_from_summary(summary)
     event = event_for_verdict(verdict)
@@ -620,7 +654,7 @@ def main(argv: list[str] | None = None) -> int:
         owner_repo, head_sha, url = pr_info(args.pr, args.repo)
 
     if args.mode == "summary":
-        body = build_summary_body(findings, summary, head_sha)
+        body = build_summary_body(findings, summary, head_sha, diagram)
         prior_comment = None
         if not offline and args.on_existing != "add":
             login = current_login()
@@ -652,7 +686,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         diff_text = pr_diff(args.pr, args.repo)
     diff_files = parse_diff(diff_text)
-    payload, unanchored = build_review(findings, summary, diff_files, head_sha, event=event)
+    payload, unanchored = build_review(findings, summary, diff_files, head_sha, event=event,
+                                       diagram=diagram)
 
     prior_reviews: list[dict] = []
     if not offline and args.on_existing != "add":
@@ -686,7 +721,7 @@ def main(argv: list[str] | None = None) -> int:
         supersede_reviews(owner_repo, args.pr, prior_reviews)
 
     result = post_review_with_fallbacks(owner_repo, args.pr, payload, findings,
-                                        summary, head_sha)
+                                        summary, head_sha, diagram)
     print(result.get("html_url", url))
     return 0
 

@@ -166,8 +166,24 @@ class BuildReview(unittest.TestCase):
         self.assertEqual((c["path"], c["line"], c["side"]), ("app/Exporter.php", 13, "RIGHT"))
         self.assertIn("**[COR-1] Null customer**", c["body"])
         self.assertIn("critical · confidence 92 · correctness", c["body"])
-        self.assertIn("**Suggested fix:** Guard it.", c["body"])
+        self.assertIn("<details>\n<summary>Suggested fix</summary>\n\nGuard it.\n\n</details>",
+                      c["body"])
+        self.assertNotIn("**Suggested fix:**", c["body"])
         self.assertIn(pr.FOOTER, payload["body"])
+
+    def test_no_fix_means_no_details(self):
+        f = self.finding()
+        del f["fix"]
+        payload, _ = pr.build_review([f], self.summary, self.files, "abc")
+        self.assertNotIn("<details>", payload["comments"][0]["body"])
+
+    def test_suggestion_block_stays_outside_the_details(self):
+        # A ```suggestion block hidden in a collapsed section is easy to miss,
+        # and it is the one-click fix, so it follows the details element.
+        payload, _ = pr.build_review([self.finding(suggestion="x")], self.summary,
+                                     self.files, "abc")
+        body = payload["comments"][0]["body"]
+        self.assertLess(body.index("</details>"), body.index("```suggestion"))
 
     def test_multiline_range_same_hunk(self):
         payload, _ = pr.build_review([self.finding(line=12, end_line=14)], self.summary, self.files, "abc")
@@ -381,6 +397,60 @@ class Suggestions(unittest.TestCase):
         self.assertIn("```suggestion\n\n```", payload["comments"][0]["body"])
 
 
+class Diagram(unittest.TestCase):
+    """The mermaid diagram of the change closes the summary, just above the footer."""
+
+    MERMAID = "flowchart LR\n  A[\"Request\"] --> B[\"Exporter\"]"
+    SECTION = f"### {pr.DIAGRAM_HEADING}\n\n```mermaid\n{MERMAID}\n```\n"
+
+    def setUp(self):
+        self.files = pr.parse_diff(DIFF)
+        self.unanchored = {"id": "CNS-1", "title": "t", "path": "app/Exporter.php",
+                           "line": 9999}
+
+    def test_review_body_ends_with_the_diagram_then_the_footer(self):
+        payload, _ = pr.build_review([self.unanchored], "s", self.files, "abc",
+                                     diagram=self.MERMAID)
+        body = payload["body"]
+        self.assertTrue(body.endswith(f"{self.SECTION}\n{pr.footer_line('abc')}\n"))
+        self.assertLess(body.index(pr.UNANCHORED_HEADING), body.index(pr.DIAGRAM_HEADING))
+
+    def test_summary_body_ends_with_the_diagram_then_the_footer(self):
+        body = pr.build_summary_body([self.unanchored], "s", "abc", self.MERMAID)
+        self.assertTrue(body.endswith(f"{self.SECTION}\n{pr.footer_line('abc')}\n"))
+        self.assertLess(body.index(pr.SUMMARY_HEADING), body.index(pr.DIAGRAM_HEADING))
+
+    def test_an_already_fenced_diagram_is_not_fenced_twice(self):
+        fenced = f"```mermaid\n{self.MERMAID}\n```\n"
+        self.assertEqual(pr._diagram_section(fenced), "\n" + self.SECTION)
+
+    def test_no_diagram_renders_nothing(self):
+        for empty in (None, "", "  \n", "```mermaid\n```"):
+            self.assertEqual(pr._diagram_section(empty), "")
+        payload, _ = pr.build_review([], "s", {}, "abc")
+        self.assertNotIn("```mermaid", payload["body"])
+
+    def test_the_422_fallback_keeps_the_diagram(self):
+        real = pr.post_review
+        self.addCleanup(setattr, pr, "post_review", real)
+        bodies = []
+
+        def fake(owner_repo, prnum, payload):
+            bodies.append(payload["body"])
+            if payload["comments"]:
+                raise RuntimeError("422 Unprocessable Entity")
+            return {"html_url": "u"}
+
+        pr.post_review = fake
+        findings = [{"id": "COR-1", "title": "t", "path": "app/Exporter.php", "line": 13}]
+        payload, _ = pr.build_review(findings, "s", self.files, "abc", diagram=self.MERMAID)
+        with contextlib.redirect_stderr(io.StringIO()):
+            pr.post_review_with_fallbacks("o/r", "1", payload, findings, "s", "abc",
+                                          self.MERMAID)
+        self.assertEqual(len(bodies), 2)
+        self.assertIn(self.SECTION, bodies[1])
+
+
 class ReviewedMarker(unittest.TestCase):
     """The footer records the reviewed head, so a re-review knows what it covered."""
 
@@ -450,7 +520,7 @@ class PriorRuns(unittest.TestCase):
         self.assertEqual(pr.find_prior_reviews(reviews, "me"), [])
 
     def test_footer_alone_is_not_enough_to_supersede(self):
-        # Superseding deletes inline comments, which cannot be undone. A review
+        # Superseding overwrites a review body, which cannot be undone. A review
         # is only a candidate when we can prove whose it is, so an account we
         # are not signed in as is never matched on the footer alone.
         reviews = [self.review(5, f"report\n\n{pr.FOOTER}\n", login="whoever")]
@@ -471,15 +541,6 @@ class PriorRuns(unittest.TestCase):
     def test_no_prior_comment(self):
         self.assertIsNone(pr.find_prior_comment([{"id": 1, "body": "x",
                                                   "user": {"login": "me"}}], "me"))
-
-    def test_stale_comment_ids_are_scoped_to_our_reviews(self):
-        comments = [
-            {"id": 10, "pull_request_review_id": 2},
-            {"id": 11, "pull_request_review_id": 99},
-            {"id": 12, "pull_request_review_id": 2},
-        ]
-        self.assertEqual(pr.stale_comment_ids(comments, {2}), [10, 12])
-
 
 class OfflineDryRun(unittest.TestCase):
     """--dry-run with a saved diff must not touch the network."""
@@ -526,6 +587,17 @@ class OfflineDryRun(unittest.TestCase):
         code, out = self.run_main("--mode", "summary")
         self.assertEqual(code, 0)
         self.assertIn(pr.FOOTER, out)
+
+    def test_diagram_flag_reaches_both_modes(self):
+        diagram = os.path.join(self.tmp, "diagram.mmd")
+        with open(diagram, "w", encoding="utf-8") as fh:
+            fh.write("flowchart LR\n  A --> B\n")
+        code, out = self.run_main("--diagram", diagram)
+        self.assertEqual(code, 0)
+        self.assertIn("```mermaid\nflowchart LR\n  A --> B\n```", json.loads(out)["body"])
+        code, out = self.run_main("--mode", "summary", "--diagram", diagram)
+        self.assertEqual(code, 0)
+        self.assertIn("```mermaid\nflowchart LR\n  A --> B\n```", out)
 
     def write_findings(self, findings):
         with open(self.findings, "w", encoding="utf-8") as fh:
@@ -589,7 +661,7 @@ class GhStub:
 
 
 class Supersede(unittest.TestCase):
-    """Superseding deletes comments, so its failure modes matter more than most."""
+    """Superseding rewrites a review body, so its failure modes matter more than most."""
 
     def setUp(self):
         self.real_gh, self.real_gh_json = pr.gh, pr.gh_json
@@ -602,7 +674,10 @@ class Supersede(unittest.TestCase):
         pr.gh_json = lambda *a: comments
         return stub
 
-    def test_deletes_only_our_comments_then_blanks_the_review(self):
+    def test_blanks_the_review_and_leaves_its_inline_comments_alone(self):
+        # The inline comments are the trace of what an earlier round raised
+        # and of any discussion under them. Superseding must never delete or
+        # edit them, only replace the review body.
         comments = [
             {"id": 10, "pull_request_review_id": 7},
             {"id": 11, "pull_request_review_id": 999},   # someone else's review
@@ -610,18 +685,18 @@ class Supersede(unittest.TestCase):
         stub = self.install(comments)
         pr.supersede_reviews("o/r", "1", [{"id": 7}])
         self.assertEqual(stub.methods(), [
-            ("DELETE", "repos/o/r/pulls/comments/10"),
             ("PUT", "repos/o/r/pulls/1/reviews/7"),
         ])
+        self.assertFalse(any("pulls/comments/" in a for call in stub.calls for a in call),
+                         "superseding touched an inline comment")
 
-    def test_a_failed_delete_does_not_stop_the_rest(self):
-        comments = [{"id": 10, "pull_request_review_id": 7}]
-        stub = self.install(comments, fail=["pulls/comments/10"])
-        with contextlib.redirect_stderr(io.StringIO()) as err:
-            pr.supersede_reviews("o/r", "1", [{"id": 7}])
-        # the review body is still blanked even though the delete failed
-        self.assertIn(("PUT", "repos/o/r/pulls/1/reviews/7"), stub.methods())
-        self.assertIn("could not delete stale comment 10", err.getvalue())
+    def test_superseding_several_reviews_touches_only_their_bodies(self):
+        stub = self.install([])
+        pr.supersede_reviews("o/r", "1", [{"id": 9}, {"id": 7}])
+        self.assertEqual(stub.methods(), [
+            ("PUT", "repos/o/r/pulls/1/reviews/7"),
+            ("PUT", "repos/o/r/pulls/1/reviews/9"),
+        ])
 
     def test_a_failed_put_is_reported_not_raised(self):
         stub = self.install([], fail=["reviews/7"])

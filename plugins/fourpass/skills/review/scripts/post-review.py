@@ -28,6 +28,8 @@ Usage:
   --mode inline   (default) one review with inline comments
   --mode summary  one ordinary PR comment containing the whole report
   --verdict X     override the verdict; default reads it from summary.md
+  --diagram F     mermaid source drawing what the change does; rendered as
+                  the last section of the review body (or summary comment)
   --dry-run       print the payload and the anchoring report; post nothing
   --repo o/r      override the owner/repo (defaults to the PR's URL)
   --on-existing   what to do when this tool already reviewed this PR:
@@ -266,8 +268,12 @@ def _comment_body(f: dict, allow_suggestion: bool = False) -> str:
     parts = [f"**[{f['id']}] {f['title']}**" + (f"\n{meta}" if meta else "")]
     if f.get("body"):
         parts.append(str(f["body"]).strip())
+    # The fix is collapsed so the comment leads with the problem; the reader
+    # opens it when they are ready to act. The blank lines inside <details>
+    # are what make GitHub render the fix as markdown rather than raw text.
     if f.get("fix"):
-        parts.append(f"**Suggested fix:** {str(f['fix']).strip()}")
+        parts.append("<details>\n<summary>Suggested fix</summary>\n\n"
+                     f"{str(f['fix']).strip()}\n\n</details>")
     # A `suggestion` block turns the finding into a commit the author can apply
     # in one click. GitHub only honours it on an inline comment anchored to the
     # head side, so it is dropped everywhere else rather than rendered as a
@@ -293,6 +299,25 @@ def _findings_section(heading: str, findings: list[dict]) -> str:
     if not findings:
         return ""
     return f"\n### {heading}\n\n" + "\n".join(_body_bullet(f) for f in findings) + "\n"
+
+
+DIAGRAM_HEADING = "What this change does"
+_FENCE_RE = re.compile(r"\A\s*```\s*mermaid[^\n]*\n(.*?)\s*```\s*\Z", re.S)
+
+
+def _diagram_section(source: str | None) -> str:
+    """Render mermaid source as the closing '### heading' block, or '' when there is none.
+
+    Accepts the bare diagram or one already wrapped in a ```mermaid fence, so
+    a lead that fences it out of habit does not post a fence inside a fence.
+    """
+    text = (source or "").strip()
+    m = _FENCE_RE.match(text)
+    if m:
+        text = m.group(1).strip()
+    if not text:
+        return ""
+    return f"\n### {DIAGRAM_HEADING}\n\n```mermaid\n{text}\n```\n"
 
 
 def _check_required(f: dict) -> None:
@@ -322,7 +347,8 @@ def _anchor(f: dict, fl: FileLines) -> dict | None:
 
 def build_review(findings: list[dict], summary: str, diff_files: dict[str, FileLines],
                  commit_id: str, heading: str = UNANCHORED_HEADING,
-                 event: str = DEFAULT_EVENT) -> tuple[dict, list[dict]]:
+                 event: str = DEFAULT_EVENT,
+                 diagram: str | None = None) -> tuple[dict, list[dict]]:
     """Return (payload, unanchored_findings); `heading` titles the body section for the latter."""
     comments: list[dict] = []
     unanchored: list[dict] = []
@@ -338,19 +364,21 @@ def build_review(findings: list[dict], summary: str, diff_files: dict[str, FileL
         comments.append({"path": path, "body": _comment_body(f, allow_suggestion=on_head),
                          **anchor})
 
+    # The diagram closes the body, after any unanchored findings, so the
+    # verdict and the findings are what a reader meets first.
     body = (summary.rstrip() + "\n" + _findings_section(heading, unanchored)
-            + f"\n{footer_line(commit_id)}\n")
+            + _diagram_section(diagram) + f"\n{footer_line(commit_id)}\n")
     payload = {"commit_id": commit_id, "event": event, "body": body, "comments": comments}
     return payload, unanchored
 
 
 def build_summary_body(findings: list[dict], summary: str,
-                       head_sha: str | None = None) -> str:
+                       head_sha: str | None = None, diagram: str | None = None) -> str:
     """Return the single-comment report used by --mode summary (every finding as a body bullet)."""
     for f in findings:
         _check_required(f)
     return (summary.rstrip() + "\n" + _findings_section(SUMMARY_HEADING, findings)
-            + f"\n{footer_line(head_sha)}\n")
+            + _diagram_section(diagram) + f"\n{footer_line(head_sha)}\n")
 
 
 # --------------------------------------------------------------------------
@@ -457,7 +485,8 @@ def post_review(owner_repo: str, pr: str, payload: dict) -> dict:
 
 
 def post_review_with_fallbacks(owner_repo: str, pr: str, payload: dict, findings: list[dict],
-                              summary: str, head_sha: str) -> dict:
+                              summary: str, head_sha: str,
+                              diagram: str | None = None) -> dict:
     """Post the review, degrading when GitHub refuses the event or an anchor."""
     for _ in range(3):
         try:
@@ -475,7 +504,8 @@ def post_review_with_fallbacks(owner_repo: str, pr: str, payload: dict, findings
                 print(f"inline anchoring rejected ({text}); retrying as body-only review",
                       file=sys.stderr)
                 payload, _ = build_review(findings, summary, {}, head_sha,
-                                          heading=FALLBACK_HEADING, event=payload["event"])
+                                          heading=FALLBACK_HEADING, event=payload["event"],
+                                          diagram=diagram)
                 continue
             raise
     raise RuntimeError("gave up posting the review after retrying")
@@ -571,6 +601,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--last-reviewed", action="store_true",
                     help="print the head sha this tool last reviewed on this PR "
                          "and exit; exits 1 with no output when there is none")
+    ap.add_argument("--diagram", help="path to a mermaid diagram of the change, "
+                                      "posted as the last section of the summary")
     ap.add_argument("--dry-run", action="store_true", help="print payload, post nothing")
     args = ap.parse_args(argv)
     if not args.last_reviewed and not (args.findings and args.summary):
@@ -604,6 +636,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     with open(args.summary, encoding="utf-8") as fh:
         summary = fh.read()
+    diagram = None
+    if args.diagram:
+        with open(args.diagram, encoding="utf-8") as fh:
+            diagram = fh.read()
 
     verdict = args.verdict or verdict_from_summary(summary)
     event = event_for_verdict(verdict)
@@ -618,7 +654,7 @@ def main(argv: list[str] | None = None) -> int:
         owner_repo, head_sha, url = pr_info(args.pr, args.repo)
 
     if args.mode == "summary":
-        body = build_summary_body(findings, summary, head_sha)
+        body = build_summary_body(findings, summary, head_sha, diagram)
         prior_comment = None
         if not offline and args.on_existing != "add":
             login = current_login()
@@ -650,7 +686,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         diff_text = pr_diff(args.pr, args.repo)
     diff_files = parse_diff(diff_text)
-    payload, unanchored = build_review(findings, summary, diff_files, head_sha, event=event)
+    payload, unanchored = build_review(findings, summary, diff_files, head_sha, event=event,
+                                       diagram=diagram)
 
     prior_reviews: list[dict] = []
     if not offline and args.on_existing != "add":
@@ -684,7 +721,7 @@ def main(argv: list[str] | None = None) -> int:
         supersede_reviews(owner_repo, args.pr, prior_reviews)
 
     result = post_review_with_fallbacks(owner_repo, args.pr, payload, findings,
-                                        summary, head_sha)
+                                        summary, head_sha, diagram)
     print(result.get("html_url", url))
     return 0
 

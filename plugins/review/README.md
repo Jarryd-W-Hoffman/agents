@@ -75,11 +75,11 @@ Add a row or two for the new plugin to `CASES` in `tests/test_plan.py`, at least
 ## Installation
 
 ```bash
-claude --plugin-dir /path/to/agents/plugins/review
+claude --plugin-dir /path/to/claude-code-plugins/plugins/review
 ```
 
 ```text
-/plugin marketplace add /path/to/agents
+/plugin marketplace add /path/to/claude-code-plugins
 /plugin install review@jarrydh-agents
 ```
 

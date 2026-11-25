@@ -1,4 +1,4 @@
-<h1 align="center">🧰 agents</h1>
+<h1 align="center">🧰 claude-code-plugins</h1>
 
 <p align="center">
     <strong>Claude Code plugins that review a change before it ships, and document a project once it has.</strong><br>
@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/Jarryd-W-Hoffman/agents/actions/workflows/validate.yml"><img src="https://github.com/Jarryd-W-Hoffman/agents/actions/workflows/validate.yml/badge.svg" alt="Validate plugins"></a>
+    <a href="https://github.com/Jarryd-W-Hoffman/claude-code-plugins/actions/workflows/validate.yml"><img src="https://github.com/Jarryd-W-Hoffman/claude-code-plugins/actions/workflows/validate.yml/badge.svg" alt="Validate plugins"></a>
     <img src="https://img.shields.io/badge/Claude%20Code-plugins-d97757" alt="Claude Code plugins">
     <img src="https://img.shields.io/badge/python-3.9%2B%20·%20stdlib%20only-3776ab" alt="Python 3.9 and up, standard library only">
     <img src="https://img.shields.io/badge/licence-MIT-22c55e" alt="MIT licence">
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-    <a href="#why-agents">Why agents?</a> ·
+    <a href="#why-these-plugins">Why these plugins?</a> ·
     <a href="#plugins">Plugins</a> ·
     <a href="#features">Features</a> ·
     <a href="#how-it-works">How it works</a> ·
@@ -31,7 +31,7 @@
 
 ---
 
-## Why agents?
+## Why these plugins?
 
 - **Nothing to check, nothing launched.** Every plugin runs a script first, with no model. A change with no migrations never starts the migration reviewer; a change whose lines no fix or revert ever touched never starts the regression reviewer; `/review:plan` picks plugins from file paths alone and costs nothing.
 - **Read-only by enforcement, not by asking.** Reviewer agents run behind a PreToolUse hook that denies edits, state-changing shell commands and write-style MCP tools. The test writer can only touch test files, and the manual writer only Markdown under `docs/`. Each guard has a selftest that CI runs.
@@ -191,10 +191,11 @@ The scripts are useful on their own. Here `find-migrations.py` finds the one mig
 
 ## Installation
 
-Add the repository as a marketplace once, then install whichever plugins you want:
+Add the repository as a marketplace once, from GitHub or a local clone, then install whichever plugins you want:
 
 ```text
-/plugin marketplace add /path/to/agents
+/plugin marketplace add Jarryd-W-Hoffman/claude-code-plugins
+/plugin marketplace add /path/to/claude-code-plugins     # or from a clone
 /plugin install fourpass@jarrydh-agents
 /plugin install migrations@jarrydh-agents
 /plugin install regressions@jarrydh-agents
@@ -207,7 +208,7 @@ Add the repository as a marketplace once, then install whichever plugins you wan
 To try a plugin for one session without installing it:
 
 ```bash
-claude --plugin-dir /path/to/agents/plugins/fourpass
+claude --plugin-dir /path/to/claude-code-plugins/plugins/fourpass
 ```
 
 Restart Claude Code after installing. Each plugin's README covers how to copy its pieces into a project without the plugin system, and how to wire its guard by hand when you do.

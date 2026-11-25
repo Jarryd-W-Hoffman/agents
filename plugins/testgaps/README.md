@@ -21,13 +21,13 @@ A test that could not run to a verdict is `BLOCKED`, with the error. The outcome
 **Try it without installing** (loads for one session):
 
 ```bash
-claude --plugin-dir /path/to/agents/plugins/testgaps
+claude --plugin-dir /path/to/claude-code-plugins/plugins/testgaps
 ```
 
 **Install from this repo as a local marketplace:**
 
 ```text
-/plugin marketplace add /path/to/agents
+/plugin marketplace add /path/to/claude-code-plugins
 /plugin install testgaps@jarrydh-agents
 ```
 
@@ -122,7 +122,7 @@ If you copy the agent into a project's `.claude/agents/` instead of installing t
 
 ```json
 { "hooks": { "PreToolUse": [ { "hooks": [ { "type": "command",
-      "command": "TEST_SCOPE_GUARD_AGENTS='*test-writer' python3 /path/to/agents/plugins/testgaps/hooks/test-scope-guard.py" }] }] } }
+      "command": "TEST_SCOPE_GUARD_AGENTS='*test-writer' python3 /path/to/claude-code-plugins/plugins/testgaps/hooks/test-scope-guard.py" }] }] } }
 ```
 
 **What the guard is not.** It constrains the agent's tool calls. A test runner executes the project's code, and that code can do whatever the project's own test suite can. The guard is defence in depth against a well-intentioned model making a mistake, not a sandbox; see the repository's [SECURITY.md](../../SECURITY.md).

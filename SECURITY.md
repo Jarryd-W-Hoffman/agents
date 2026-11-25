@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Report privately through this repository's [security advisories](https://github.com/Jarryd-W-Hoffman/agents/security/advisories/new).
+Report privately through this repository's [security advisories](https://github.com/Jarryd-W-Hoffman/claude-code-plugins/security/advisories/new).
 
 Please do not open a public issue for a vulnerability. Include what you did, what happened, and the version of the plugin and of Claude Code. If the report is about the read-only guard, the exact command or tool name that got through is the useful part.
 
@@ -12,7 +12,7 @@ Every plugin here is 0.x and versioned on its own. Only the latest release of ea
 
 ## What the read-only guard is for
 
-This repository ships Claude Code plugins under `plugins/`. Five of them carry a PreToolUse guard: the read-only guard in `fourpass`, covered below, which `migrations`, `impact` and `regressions` carry identical copies of for their `migration-reviewer`, `impact-analyst` and `regression-reviewer` agents; and the write-scope guard in `testgaps`, which confines its `test-writer` agent to test paths and recognised test runners. The same statement applies to all of them: each is defence in depth against a well-intentioned model making a mistake, not a sandbox. The write-scope guard has one further limit worth naming: it constrains the agent's own tool calls, but a test runner executes the project's code, and that code can do anything the project's own test suite can.
+This repository ships Claude Code plugins under `plugins/`. Six of them carry a PreToolUse guard: the read-only guard in `fourpass`, covered below, which `migrations`, `impact` and `regressions` carry identical copies of for their `migration-reviewer`, `impact-analyst` and `regression-reviewer` agents; the write-scope guard in `testgaps`, which confines its `test-writer` agent to test paths and recognised test runners; and the docs-scope guard in `docs`, which confines its `manual-writer` agent to Markdown under `docs/` and denies it the shell and MCP tools. The same statement applies to all of them: each is defence in depth against a well-intentioned model making a mistake, not a sandbox. The write-scope guard has one further limit worth naming: it constrains the agent's own tool calls, but a test runner executes the project's code, and that code can do anything the project's own test suite can.
 
 `plugins/fourpass/hooks/readonly-guard.py` is a PreToolUse hook that keeps the four reviewer agents read-only. It denies file edits, state-changing shell commands and write-style MCP tools, auto-allows recognised reads so reviews do not stall on permission prompts, and fails closed: anything it cannot classify is denied with a reason.
 

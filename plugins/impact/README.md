@@ -19,11 +19,11 @@ It is a map, not a review. There are no severities and no verdict, and nothing i
 ## Installation
 
 ```bash
-claude --plugin-dir /path/to/agents/plugins/impact      # one session
+claude --plugin-dir /path/to/claude-code-plugins/plugins/impact      # one session
 ```
 
 ```text
-/plugin marketplace add /path/to/agents
+/plugin marketplace add /path/to/claude-code-plugins
 /plugin install impact@jarrydh-agents
 ```
 

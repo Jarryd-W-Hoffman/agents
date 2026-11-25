@@ -17,13 +17,13 @@ Laravel is the first-class case, with Laravel-specific checks such as `->change(
 **Try it without installing** (loads for one session):
 
 ```bash
-claude --plugin-dir /path/to/agents/plugins/migrations
+claude --plugin-dir /path/to/claude-code-plugins/plugins/migrations
 ```
 
 **Install from this repo as a local marketplace:**
 
 ```text
-/plugin marketplace add /path/to/agents
+/plugin marketplace add /path/to/claude-code-plugins
 /plugin install migrations@jarrydh-agents
 ```
 

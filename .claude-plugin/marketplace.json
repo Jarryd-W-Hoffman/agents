@@ -12,49 +12,49 @@
       "description": "Four-pass code review: completeness, correctness, compliance and consistency reviewer agents run in parallel, then merged into one ranked report",
       "source": "./plugins/fourpass",
       "category": "productivity",
-      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+      "homepage": "https://github.com/Jarryd-W-Hoffman/claude-code-plugins"
     },
     {
       "name": "testgaps",
       "description": "Turns code-review findings into tests: one test-writer agent per finding writes the smallest test that proves it, runs it, and reports whether it reproduced the defect. A hook confines the writer to test files",
       "source": "./plugins/testgaps",
       "category": "testing",
-      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+      "homepage": "https://github.com/Jarryd-W-Hoffman/claude-code-plugins"
     },
     {
       "name": "migrations",
       "description": "Reviews database migrations for what breaks in production: old code against the new schema during a deploy, table locks, data loss, constraints existing rows violate, and missing rollbacks. Launches nothing when a change has no migrations",
       "source": "./plugins/migrations",
       "category": "productivity",
-      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+      "homepage": "https://github.com/Jarryd-W-Hoffman/claude-code-plugins"
     },
     {
       "name": "impact",
       "description": "Maps what a change touches and what reaches it: callers, routes, scheduled tasks, queued jobs, event listeners, tests that reach it and changed code none do, data and contracts. Facts, not a review. Launches nothing when only docs or tests changed",
       "source": "./plugins/impact",
       "category": "productivity",
-      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+      "homepage": "https://github.com/Jarryd-W-Hoffman/claude-code-plugins"
     },
     {
       "name": "review",
       "description": "Works out which of this marketplace's plugins a change needs, from the files it touches and with no model, and shows the plan: what would run, what is skipped and why, and what to offer afterwards",
       "source": "./plugins/review",
       "category": "productivity",
-      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+      "homepage": "https://github.com/Jarryd-W-Hoffman/claude-code-plugins"
     },
     {
       "name": "regressions",
       "description": "Checks whether a change undoes what the repository's history already learned: removes a fix's guard, re-introduces reverted code, loosens a regression test, or leaves a usual partner file behind. Launches nothing when the history has nothing to say",
       "source": "./plugins/regressions",
       "category": "productivity",
-      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+      "homepage": "https://github.com/Jarryd-W-Hoffman/claude-code-plugins"
     },
     {
       "name": "docs",
       "description": "Writes a README and a user manual in the shape of the author's Kite repository: Mermaid diagrams of the real mechanism, pseudocode for the rules, and real screenshots taken from a plan kept in the repository. One writer agent per manual chapter, confined to docs/ by a hook",
       "source": "./plugins/docs",
       "category": "productivity",
-      "homepage": "https://github.com/Jarryd-W-Hoffman/agents"
+      "homepage": "https://github.com/Jarryd-W-Hoffman/claude-code-plugins"
     }
   ]
 }

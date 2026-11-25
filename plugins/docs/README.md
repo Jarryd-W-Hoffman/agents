@@ -55,7 +55,7 @@ The template, the house style and the screenshot guide are in `references/`. The
 
 ## Status
 
-`0.1.0`, early. `/docs:readme` and `/docs:screenshots` have been run end to end on this repository (see [Dogfooded](#dogfooded)). `/docs:manual` has not yet been run end to end: the `manual-writer` agents and the scope guard pass their tests and selftest, but have not yet written a real manual.
+`0.1.0`, early. `/docs:readme` and `/docs:screenshots` have been run end to end on this repository's own README. `/docs:manual` has not yet been run end to end: the `manual-writer` agents and the scope guard pass their tests and selftest, but have not yet written a real manual.
 
 ## Cost
 
@@ -97,10 +97,6 @@ python3 scripts/survey.py --root path/to/repo
 python3 scripts/docs_check.py --root path/to/repo --readme README.md --manual docs/manual --plan docs/screenshots.json
 node scripts/shoot.mjs docs/screenshots.json --root path/to/repo [--only a,b] [--check] [--cached]
 ```
-
-## Dogfooded
-
-The [agents README](../../README.md) was written with `/docs:readme`, and every image on it was taken by `shoot.mjs` from [`docs/screenshots.json`](../../docs/screenshots.json): real `claude -p` runs of the plugins in a demo repository, drawn as Markdown, and real script output.
 
 ## Rules it keeps
 

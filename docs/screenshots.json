@@ -1,0 +1,87 @@
+{
+  "shots": [
+    {
+      "name": "review-plan",
+      "out": ".github/screenshots/review-plan.png",
+      "alt": "Claude Code running /review:plan on a change that drops a database column: fourpass, migrations, impact and regressions would run, each with the files that selected it and what it costs, and testgaps is offered afterwards.",
+      "terminal": {
+        "command": "docs/demo/run.sh '/review:plan'",
+        "display": "claude -p '/review:plan'",
+        "title": "claude — agents-demo",
+        "render": "markdown",
+        "width": 1180,
+        "timeout": 300
+      }
+    },
+    {
+      "name": "migrations-check",
+      "out": ".github/screenshots/migrations-check.png",
+      "alt": "Claude Code running /migrations:check on the same change: the report's verdict and its findings about the dropped column.",
+      "terminal": {
+        "command": "docs/demo/run.sh '/migrations:check'",
+        "display": "claude -p '/migrations:check'",
+        "title": "claude — agents-demo",
+        "render": "markdown",
+        "width": 1180,
+        "timeout": 600
+      }
+    },
+    {
+      "name": "regressions-hunt",
+      "out": ".github/screenshots/regressions-hunt.png",
+      "alt": "Claude Code running /regressions:hunt on a repository whose history has no fixes or reverts on the changed lines: it says so and launches no agent.",
+      "terminal": {
+        "command": "docs/demo/run.sh '/regressions:hunt'",
+        "display": "claude -p '/regressions:hunt'",
+        "title": "claude — agents-demo",
+        "render": "markdown",
+        "width": 1180,
+        "timeout": 300
+      }
+    },
+    {
+      "name": "find-migrations",
+      "out": ".github/screenshots/find-migrations.png",
+      "alt": "find-migrations.py finding one added Laravel migration in the demo change, with no model involved.",
+      "terminal": {
+        "command": "cd \"$(docs/demo/make-demo-repo.sh)\" && python3 \"$OLDPWD/plugins/migrations/skills/check/scripts/find-migrations.py\" --base HEAD",
+        "display": "python3 find-migrations.py --base HEAD",
+        "title": "agents-demo",
+        "width": 1020
+      }
+    },
+    {
+      "name": "readonly-guard",
+      "out": ".github/screenshots/readonly-guard.png",
+      "alt": "The read-only guard's selftest for the impact analyst: git diff and a read-only GitHub MCP call are allowed; rm, a redirect to a file, Write and an MCP call that posts a comment are denied.",
+      "terminal": {
+        "command": "READONLY_GUARD_AGENTS='*impact-analyst' python3 plugins/impact/hooks/readonly-guard.py --selftest",
+        "display": "READONLY_GUARD_AGENTS='*impact-analyst' python3 hooks/readonly-guard.py --selftest",
+        "title": "agents",
+        "width": 1000
+      }
+    },
+    {
+      "name": "check-sh",
+      "out": ".github/screenshots/check-sh.png",
+      "alt": "./scripts/check.sh --tests docs: the shared checks, then the docs plugin's five suites and its guard selftest, ending with all checks passed.",
+      "terminal": {
+        "command": "./scripts/check.sh --tests docs 2>&1 | grep -E '==>|Ran |OK$|selftest: passed|all checks passed'",
+        "display": "./scripts/check.sh --tests docs",
+        "title": "agents",
+        "width": 1120
+      }
+    },
+    {
+      "name": "docs-check",
+      "out": ".github/screenshots/docs-check.png",
+      "alt": "docs_check.py checking this README and its screenshot plan: no errors.",
+      "terminal": {
+        "command": "python3 plugins/docs/scripts/docs_check.py --readme README.md --plan docs/screenshots.json",
+        "display": "python3 docs_check.py --readme README.md --plan docs/screenshots.json",
+        "title": "agents",
+        "width": 900
+      }
+    }
+  ]
+}

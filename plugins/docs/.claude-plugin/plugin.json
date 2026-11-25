@@ -1,0 +1,19 @@
+{
+  "name": "docs",
+  "version": "0.1.0",
+  "description": "Writes a README and a user manual in the shape of the author's Kite repository: diagrams of the real mechanism, pseudocode for the rules, and real screenshots taken from a plan kept in the repository. A script surveys the repository and another checks the result; one writer agent per manual chapter, confined to docs/ by a hook",
+  "author": {
+    "name": "Jarryd Hoffman",
+    "email": "jarryd.hoffman@windowslive.com"
+  },
+  "homepage": "https://github.com/Jarryd-W-Hoffman/agents",
+  "repository": "https://github.com/Jarryd-W-Hoffman/agents",
+  "keywords": [
+    "documentation",
+    "readme",
+    "user-manual",
+    "screenshots",
+    "mermaid"
+  ],
+  "license": "MIT"
+}

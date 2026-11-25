@@ -121,6 +121,32 @@ class GoCli(unittest.TestCase):
         self.assertIsNone(data["licence"])
 
 
+class Plugins(unittest.TestCase):
+    def test_a_marketplace_lists_each_plugins_commands_and_agents(self):
+        root = build({
+            ".claude-plugin/marketplace.json": {"name": "mine", "plugins": [
+                {"name": "impact", "source": "./plugins/impact", "description": "Maps a change."}]},
+            "plugins/impact/.claude-plugin/plugin.json": {"name": "impact", "version": "0.1.0"},
+            "plugins/impact/skills/map/SKILL.md": "---\nname: map\n---\n",
+            "plugins/impact/agents/impact-analyst.md": "---\nname: impact-analyst\n---\n",
+            "plugins/impact/hooks/hooks.json": {},
+            "scripts/check.sh": "#!/bin/sh\n",
+            ".github/workflows/ci.yml": "name: CI\non:\n  pull_request:\n# a CLI release cannot break this\n",
+        })
+        try:
+            data = survey.survey(root)
+        finally:
+            shutil.rmtree(root)
+        (stack,) = data["stacks"]
+        self.assertEqual(stack["stack"], "claude-plugins")
+        (plugin,) = stack["plugins"]
+        self.assertEqual((plugin["commands"], plugin["agents"], plugin["hooks"], plugin["version"]),
+                         (["/impact:map"], ["impact-analyst"], True, "0.1.0"))
+        self.assertEqual(stack["commands"], {"test": "./scripts/check.sh"})
+        self.assertEqual(data["visual"]["kinds"], ["terminal"])
+        self.assertFalse(data["workflows"][0]["releases"], "a comment mentioning a release is not one")
+
+
 class Remotes(unittest.TestCase):
     def test_github_slug(self):
         for remote in ("git@github.com:a/b.git", "https://github.com/a/b", "https://github.com/a/b.git/"):

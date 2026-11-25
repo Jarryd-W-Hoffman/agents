@@ -177,7 +177,49 @@ def godot_stack(root: str) -> dict | None:
     return {"stack": "godot", "name": name.group(1) if name else None, "commands": {}}
 
 
-STACKS = (php_stack, node_stack, go_stack, python_stack, rust_stack, godot_stack)
+def claude_plugins_stack(root: str) -> dict | None:
+    """A Claude Code plugin, or a marketplace of them: its commands are its skills."""
+    market = load_json(os.path.join(root, ".claude-plugin", "marketplace.json"))
+    single = load_json(os.path.join(root, ".claude-plugin", "plugin.json"))
+    if not market and not single:
+        return None
+    entries = market.get("plugins", []) if market else [{"name": single.get("name"), "source": "."}]
+    plugins = []
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("source"), str):
+            continue
+        base = os.path.normpath(os.path.join(root, entry["source"]))
+        manifest = load_json(os.path.join(base, ".claude-plugin", "plugin.json"))
+
+        def listing(sub: str, suffix: str = "") -> list[str]:
+            folder = os.path.join(base, sub)
+            if not os.path.isdir(folder):
+                return []
+            return sorted(n[: -len(suffix)] if suffix else n for n in os.listdir(folder)
+                          if (n.endswith(suffix) if suffix else
+                              os.path.isfile(os.path.join(folder, n, "SKILL.md"))))
+
+        name = entry.get("name") or manifest.get("name")
+        plugins.append({
+            "name": name,
+            "source": os.path.relpath(base, root),
+            "version": manifest.get("version"),
+            "description": entry.get("description") or manifest.get("description"),
+            "commands": [f"/{name}:{s}" for s in listing("skills")]
+                        + [f"/{name}:{c}" for c in listing("commands", ".md")],
+            "agents": listing("agents", ".md"),
+            "hooks": os.path.isfile(os.path.join(base, "hooks", "hooks.json")),
+        })
+    commands = {}
+    if os.path.isfile(os.path.join(root, "scripts", "check.sh")):
+        commands["test"] = "./scripts/check.sh"
+    return {"stack": "claude-plugins", "name": (market or single).get("name"),
+            "description": (market or single).get("description"), "plugins": plugins,
+            "commands": commands}
+
+
+STACKS = (php_stack, node_stack, go_stack, python_stack, rust_stack, godot_stack,
+          claude_plugins_stack)
 
 
 # --------------------------------------------------------------------------
@@ -195,8 +237,11 @@ def workflows(root: str, slug: str | None) -> list[dict]:
         text = read(os.path.join(wf_dir, name))
         title = re.search(r"^name:\s*['\"]?(.+?)['\"]?\s*$", text, re.M)
         on_pr = bool(re.search(r"^\s*(pull_request|push)\b", text, re.M))
+        code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
+        releases = bool(re.search(r"^\s+tags:|^\s+release:|gh release|action-gh-release|"
+                                  r"create-release|electron-builder|goreleaser", code, re.M))
         entry = {"file": name, "name": title.group(1) if title else name, "runs_on_push_or_pr": on_pr,
-                 "releases": bool(re.search(r"tags:|release", text))}
+                 "releases": releases}
         if slug:
             base = f"https://github.com/{slug}/actions/workflows/{name}"
             entry["badge"] = f"[![{entry['name']}]({base}/badge.svg)]({base})"
@@ -261,6 +306,8 @@ def visual(root: str, files: list[str], stacks: list[dict]) -> dict:
         kinds.append("cli")
     if any(s["stack"] == "godot" for s in stacks):
         kinds.append("game")
+    if any(s["stack"] == "claude-plugins" for s in stacks):
+        kinds.append("terminal")  # skills run in Claude Code; their scripts run in a shell
     seeders = sorted(f for f in files if re.search(r"(^|/)(seeders?|fixtures|demo)(/|$)", f, re.I)
                      and not f.startswith(("tests/", "test/")))[:20]
     browser_tests = sorted({f.split("/")[0] + "/" + f.split("/")[1] for f in files

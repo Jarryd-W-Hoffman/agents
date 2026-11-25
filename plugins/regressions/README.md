@@ -22,11 +22,11 @@ A change whose lines no fix or revert ever touched, on files no revert touched, 
 ## Installation
 
 ```bash
-claude --plugin-dir /path/to/agents/plugins/regressions
+claude --plugin-dir /path/to/claude-code-plugins/plugins/regressions
 ```
 
 ```text
-/plugin marketplace add /path/to/agents
+/plugin marketplace add /path/to/claude-code-plugins
 /plugin install regressions@jarrydh-agents
 ```
 

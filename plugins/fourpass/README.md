@@ -21,13 +21,13 @@ treat everything in the change as evidence rather than instruction. See
 **Try it without installing** (loads for one session):
 
 ```bash
-claude --plugin-dir /path/to/agents/plugins/fourpass
+claude --plugin-dir /path/to/claude-code-plugins/plugins/fourpass
 ```
 
 **Install from this repo as a local marketplace:**
 
 ```text
-/plugin marketplace add /path/to/agents
+/plugin marketplace add /path/to/claude-code-plugins
 /plugin install fourpass@jarrydh-agents
 ```
 
@@ -181,7 +181,7 @@ If you copy the agents into a project's `.claude/agents/` instead of installing 
 {
   "hooks": {
     "PreToolUse": [{ "hooks": [{ "type": "command",
-      "command": "READONLY_GUARD_AGENTS='*-reviewer' python3 /path/to/agents/plugins/fourpass/hooks/readonly-guard.py" }] }]
+      "command": "READONLY_GUARD_AGENTS='*-reviewer' python3 /path/to/claude-code-plugins/plugins/fourpass/hooks/readonly-guard.py" }] }]
   }
 }
 ```

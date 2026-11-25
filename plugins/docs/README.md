@@ -70,11 +70,11 @@ The template, the house style and the screenshot guide are in `references/`. The
 ## Installation
 
 ```bash
-claude --plugin-dir /path/to/agents/plugins/docs      # one session
+claude --plugin-dir /path/to/claude-code-plugins/plugins/docs      # one session
 ```
 
 ```text
-/plugin marketplace add /path/to/agents
+/plugin marketplace add /path/to/claude-code-plugins
 /plugin install docs@jarrydh-agents
 ```
 

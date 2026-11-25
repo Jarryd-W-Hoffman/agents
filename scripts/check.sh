@@ -94,6 +94,9 @@ print(re.search(r"READONLY_GUARD_AGENTS='"'"'([^'"'"']*)'"'"'", c).group(1))')
   if [ -f hooks/test-scope-guard.py ]; then
     run env TEST_SCOPE_GUARD_AGENTS='*test-writer' "$PYTHON" hooks/test-scope-guard.py --selftest
   fi
+  if [ -f hooks/docs-scope-guard.py ]; then
+    run env DOCS_SCOPE_GUARD_AGENTS='*manual-writer' "$PYTHON" hooks/docs-scope-guard.py --selftest
+  fi
 }
 
 shared_checks() {

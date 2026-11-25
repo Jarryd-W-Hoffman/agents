@@ -6,8 +6,8 @@ tests may not read outside it, so the cross-plugin checks live here and
 `scripts/check.sh` runs them:
 
 - every plugin in the marketplace has a registry entry, except
-  review itself, so a new plugin cannot be silently left out of
-  every plan;
+  review itself and the plugins in NOT_REVIEWERS, so a new plugin
+  cannot be silently left out of every plan;
 - every registry entry names a plugin in the marketplace, and its skill
   (`<plugin>:<skill>`) exists as `plugins/<plugin>/skills/<skill>/SKILL.md`;
 - the finding prefixes each entry claims are the ones the finding contract's
@@ -27,6 +27,11 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SELF = "review"
+# Plugins that write something rather than review a change, so no plan
+# should ever run them. Each must say why here.
+NOT_REVIEWERS = {
+    "docs": "writes a README and user manual on request; it has nothing to say about a diff",
+}
 REGISTRY = os.path.join(ROOT, "plugins", SELF, "registry.json")
 MARKETPLACE = os.path.join(ROOT, ".claude-plugin", "marketplace.json")
 CONTRACT_README = os.path.join(ROOT, "shared", "finding-contract", "README.md")
@@ -52,8 +57,12 @@ def problems() -> list[str]:
         marketplace = {p["name"] for p in json.load(fh)["plugins"]}
     entries = {p["name"]: p for p in registry["plugins"]}
     out = []
-    for name in sorted(marketplace - set(entries) - {SELF}):
+    for name in sorted(marketplace - set(entries) - {SELF} - set(NOT_REVIEWERS)):
         out.append(f"marketplace plugin '{name}' has no entry in {os.path.relpath(REGISTRY, ROOT)}")
+    for name in sorted(set(NOT_REVIEWERS) - marketplace):
+        out.append(f"NOT_REVIEWERS names '{name}', which is not a plugin in the marketplace")
+    for name in sorted(set(NOT_REVIEWERS) & set(entries)):
+        out.append(f"'{name}' is in NOT_REVIEWERS and also has a registry entry; pick one")
     for name, p in sorted(entries.items()):
         if name not in marketplace:
             out.append(f"registry entry '{name}' is not a plugin in the marketplace")

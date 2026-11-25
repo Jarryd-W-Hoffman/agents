@@ -1,0 +1,16 @@
+{
+  "description": "Keeps the manual-writer agent inside the docs tree. While a *manual-writer agent from this plugin is running, denies edits to anything but Markdown under docs/, every shell command and every MCP tool, so the agent can read the code and write its chapter and nothing else. No effect on other agents or the main session.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DOCS_SCOPE_GUARD_AGENTS='*manual-writer' python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/docs-scope-guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -10,6 +10,7 @@ Claude Code plugins, installable from this repository as a local marketplace. Ea
 | `impact` | `/impact:map` | Maps what a change touches and what reaches it: callers, routes, scheduled tasks, queued jobs, event listeners, tests, data and contracts. Facts, not a review. | [README](plugins/impact/README.md) · [CHANGELOG](plugins/impact/CHANGELOG.md) |
 | `testgaps` | `/testgaps:write` | Turns review findings into tests. One writer agent per finding writes the smallest test that proves it, runs it, and reports whether it reproduced the defect. A hook confines the writer to test files. | [README](plugins/testgaps/README.md) · [CHANGELOG](plugins/testgaps/CHANGELOG.md) |
 | `review` | `/review:plan`, `/review:all` | Works out which of the plugins above a change needs, from the files it touches and with no model. `plan` shows that plan for free; `all` runs the selected plugins in parallel and merges their results into one report and one verdict. | [README](plugins/review/README.md) · [CHANGELOG](plugins/review/CHANGELOG.md) |
+| `docs` | `/docs:readme`, `/docs:manual`, `/docs:screenshots` | Writes a README and a user manual in the shape of the [Kite](https://github.com/Jarryd-W-Hoffman/kite) repository: Mermaid diagrams of the real mechanism, pseudocode for the rules, and real screenshots taken from a plan kept in the repository. One writer agent per manual chapter, confined to `docs/` by a hook. Not part of `review`: it writes, it does not review. | [README](plugins/docs/README.md) · [CHANGELOG](plugins/docs/CHANGELOG.md) |
 
 ## Installation
 
@@ -23,6 +24,7 @@ Add the repository as a marketplace once, then install whichever plugins you wan
 /plugin install impact@jarrydh-agents
 /plugin install testgaps@jarrydh-agents
 /plugin install review@jarrydh-agents
+/plugin install docs@jarrydh-agents
 ```
 
 To try a plugin for one session without installing it:
@@ -45,6 +47,7 @@ plugins/
   impact/
   review/
   regressions/
+  docs/
 shared/
   finding-contract/      the findings.json schema every plugin reads and writes,
                          and its validator; canonical copy, see its README

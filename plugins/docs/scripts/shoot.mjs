@@ -44,11 +44,11 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ACTIONS = ["goto", "click", "dblclick", "hover", "fill", "type", "press", "select", "check",
   "uncheck", "wait", "waitFor", "waitForURL", "scroll", "eval", "drag", "setInput"];
@@ -186,11 +186,14 @@ export function ansiToHtml(text) {
 // Markdown shows it: headings, bold, code, lists, tables and rules. Small on purpose: no HTML
 // passthrough, no nesting beyond one list level.
 function inline(text) {
-  return escapeHtml(text)
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
-    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '<u>$1</u>');
+  // Code spans first, and nothing inside them is formatted: `**/migrations/**` stays as written.
+  return text.split(/(`[^`]+`)/).map((part) => {
+    if (/^`[^`]+`$/.test(part)) return `<code>${escapeHtml(part.slice(1, -1))}</code>`;
+    return escapeHtml(part)
+      .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+      .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "<u>$1</u>");
+  }).join("");
 }
 
 export function markdownToHtml(text) {
@@ -453,7 +456,18 @@ async function main() {
   console.log(`shoot: ${shots.length} screenshot(s) taken`);
 }
 
-const invoked = process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname);
+// Compare real file paths, not a URL's encoded pathname: a path with a space or a symlink in it
+// would otherwise never match, and the script would exit 0 having done nothing.
+function isMain() {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+const invoked = isMain();
 if (invoked) {
   main().catch((err) => {
     console.error(`shoot: ${err.message}`);

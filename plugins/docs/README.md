@@ -53,6 +53,10 @@ flowchart LR
 
 The template, the house style and the screenshot guide are in `references/`. They are Kite's README and manual, written down: section order, voice, how diagrams and pseudocode are drawn, how screenshots are framed and described.
 
+## Status
+
+`0.1.0`, early. `/docs:readme` and `/docs:screenshots` have been run end to end on this repository (see [Dogfooded](#dogfooded)). `/docs:manual` has not yet been run end to end: the `manual-writer` agents and the scope guard pass their tests and selftest, but have not yet written a real manual.
+
 ## Cost
 
 - `/docs:readme` and `/docs:screenshots`: the session's model only, no agents.

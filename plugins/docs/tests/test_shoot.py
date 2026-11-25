@@ -77,6 +77,20 @@ class Check(unittest.TestCase):
         del no_base["baseUrl"]
         self.assertRejects(no_base, "'path' needs a top-level 'baseUrl'")
 
+    def test_runs_from_a_path_with_a_space(self):
+        # Found in review: comparing argv[1] with the module URL's encoded pathname
+        # never matched under "space dir", so the script exited 0 having done nothing.
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = os.path.join(tmp, "space dir")
+            os.makedirs(folder)
+            shutil.copy(SHOOT, folder)
+            with open(os.path.join(folder, "plan.json"), "w", encoding="utf-8") as fh:
+                json.dump(GOOD, fh)
+            result = subprocess.run([NODE, os.path.join(folder, "shoot.mjs"), "plan.json", "--check"],
+                                    cwd=folder, capture_output=True, text=True, timeout=30, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("shoot: plan ok, 2 shot(s)", result.stdout)
+
     def test_unreadable_plan(self):
         result = run("{not json", "--check")
         self.assertEqual(result.returncode, 2)
@@ -120,6 +134,13 @@ class Markdown(unittest.TestCase):
         html = self.convert("| A | B |\n|---|---|\n| `x` | y |\n\n```json\n{\"a\": 1}\n```")
         self.assertIn("<table><tr><th>A</th><th>B</th></tr><tr><td><code>x</code></td><td>y</td></tr></table>", html)
         self.assertIn('<pre class="code">{&quot;a&quot;: 1}</pre>'.replace("&quot;", '"'), html)
+
+    def test_nothing_inside_code_is_formatted(self):
+        html = self.convert("Patterns: `**/migrations/**` and `*impact-analyst`, **bold** *it*")
+        self.assertIn("<code>**/migrations/**</code>", html)
+        self.assertIn("<code>*impact-analyst</code>", html)
+        self.assertIn("<b>bold</b> <i>it</i>", html)
+        self.assertIn("<code>&lt;b&gt;</code>", self.convert("`<b>`"))
 
     def test_html_in_the_output_is_escaped(self):
         self.assertIn("&lt;script&gt;", self.convert("<script>alert(1)</script>"))

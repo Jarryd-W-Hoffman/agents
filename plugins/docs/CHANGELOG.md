@@ -24,3 +24,5 @@ and this plugin adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 ### Fixed
 
 - `survey.py` no longer reports a workflow as a release workflow because a comment mentions "release". Found by running `/docs:readme` on this repository.
+- `shoot.mjs` exited 0 without doing anything when its path contained a space or a symlink: it compared its arguments with the module URL's encoded pathname. It now compares real paths.
+- Markdown terminal shots formatted text inside code spans, so `` `**/migrations/**` `` lost its asterisks and turned bold. Code spans are now left as written.

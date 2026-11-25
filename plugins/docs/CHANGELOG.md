@@ -18,3 +18,9 @@ and this plugin adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - `scripts/docs_check.py`: errors for missing images, missing alt text, broken links and anchors (GitHub's slug rules), empty, unknown or unbalanced Mermaid diagrams, chapters without a screenshot or diagram or missing from the index, a README that does not link its manual, and planned shots not taken. Warnings for drift from the template.
 - `references/`: the README and manual templates, the house style (voice, formatting, diagrams, pseudocode, screenshots, accuracy), the screenshot guide and the writer brief, distilled from Kite.
 - Tests: the check, the survey, the screenshot plan and ANSI rendering (needs Node, skipped without it), the skill and agent invariants, and a standard-library lint pass.
+- `shoot.mjs`: `"render": "markdown"` draws a terminal shot's output as Markdown, the way Claude Code shows a report; `--cached` redraws terminal shots from their last output without running the command again.
+- `survey.py` recognises a Claude Code plugin or marketplace, listing each plugin's commands, agents and hooks, and gives it terminal shots.
+
+### Fixed
+
+- `survey.py` no longer reports a workflow as a release workflow because a comment mentions "release". Found by running `/docs:readme` on this repository.

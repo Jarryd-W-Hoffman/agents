@@ -11,7 +11,7 @@ The screenshots are real: a script drives the running app (or runs the CLI) from
 | `screenshots` skill | Retakes every shot in the plan, or some, or adds a new one. |
 | `manual-writer` agent | Writes one chapter from the code, confirming every statement, and reports what it could not confirm. Reads anything; writes Markdown under `docs/` and nothing else, enforced by a hook. No shell. |
 | `survey.py` | No model. The project's name, GitHub slug, stacks and their commands, CI workflows with badges, licence, existing docs and images, and what there is to screenshot. |
-| `shoot.mjs` | No model. Takes the screenshots in the plan with Playwright: pages (a login once, then actions, a whole window or one element, light or dark) and terminals (a real command's output, colours included, in a terminal window). |
+| `shoot.mjs` | No model. Takes the screenshots in the plan with Playwright: pages (a login once, then actions, a whole window or one element, light or dark) and terminals (a real command's output, colours included, or drawn as Markdown, in a terminal window). |
 | `docs_check.py` | No model. Every image exists and has alt text, every link and anchor resolves, every Mermaid diagram starts with a diagram type and balances its brackets, every chapter has a screenshot and a diagram and is in the index, every planned screenshot was taken. Warns on drift from the template. |
 
 ## How it works
@@ -91,8 +91,12 @@ The scripts run on their own too:
 ```bash
 python3 scripts/survey.py --root path/to/repo
 python3 scripts/docs_check.py --root path/to/repo --readme README.md --manual docs/manual --plan docs/screenshots.json
-node scripts/shoot.mjs docs/screenshots.json --root path/to/repo [--only a,b] [--check]
+node scripts/shoot.mjs docs/screenshots.json --root path/to/repo [--only a,b] [--check] [--cached]
 ```
+
+## Dogfooded
+
+The [agents README](../../README.md) was written with `/docs:readme`, and every image on it was taken by `shoot.mjs` from [`docs/screenshots.json`](../../docs/screenshots.json): real `claude -p` runs of the plugins in a demo repository, drawn as Markdown, and real script output.
 
 ## Rules it keeps
 

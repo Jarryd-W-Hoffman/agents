@@ -28,10 +28,13 @@
 //
 // A web shot visits baseUrl + path (or url), runs its actions, and captures the page, one
 // element of it, or the full page. A terminal shot runs a command in the repository, and draws
-// its output, colours included, in a terminal window. `setup` runs once, before the first web
+// its output, colours included, in a terminal window; with "render": "markdown" the output is
+// drawn as Markdown (headings, tables, code), the way Claude Code shows a report. `setup` runs once, before the first web
 // shot, in the same browser context, so a login carries over.
 //
 // --check validates the plan and prints what would be taken, without a browser.
+// --cached redraws terminal shots from the output their last run saved (in the OS temp dir),
+// without running the command again: for restyling a shot whose command is slow or costs money.
 //
 // Playwright is looked up in the repository first (playwright, @playwright/test or
 // playwright-core), then in $DOCS_PLAYWRIGHT_DIR. The browser is $CHROME_PATH, else an installed
@@ -40,7 +43,9 @@
 // Node 18 or later; no dependencies of its own.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -51,17 +56,18 @@ const IMAGE = /\.(png|jpe?g)$/i;
 
 function usage(message) {
   if (message) console.error(`shoot: ${message}`);
-  console.error("usage: node shoot.mjs <plan.json> [--root <dir>] [--only a,b] [--check]");
+  console.error("usage: node shoot.mjs <plan.json> [--root <dir>] [--only a,b] [--check] [--cached]");
   process.exit(2);
 }
 
 function parseArgs(argv) {
-  const args = { plan: null, root: null, only: null, check: false };
+  const args = { plan: null, root: null, only: null, check: false, cached: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--root") args.root = argv[++i];
     else if (a === "--only") args.only = new Set((argv[++i] ?? "").split(",").filter(Boolean));
     else if (a === "--check") args.check = true;
+    else if (a === "--cached") args.cached = true;
     else if (a.startsWith("-")) usage(`unknown option ${a}`);
     else if (!args.plan) args.plan = a;
     else usage(`unexpected argument ${a}`);
@@ -95,6 +101,7 @@ export function validate(plan, root) {
     if (shot.terminal && web) errors.push(`${where}: a shot is a terminal or a page, not both`);
     if (!shot.terminal && !web) errors.push(`${where}: needs 'path', 'url' or 'terminal'`);
     if (shot.terminal && typeof shot.terminal.command !== "string") errors.push(`${where}: terminal.command must be a string`);
+    if (shot.terminal?.render && !["ansi", "markdown"].includes(shot.terminal.render)) errors.push(`${where}: terminal.render must be "ansi" or "markdown"`);
     if (web && shot.path !== undefined && !plan.baseUrl) errors.push(`${where}: 'path' needs a top-level 'baseUrl'`);
     for (const action of shot.actions ?? []) errors.push(...checkAction(action, where));
   }
@@ -175,19 +182,93 @@ export function ansiToHtml(text) {
   return out;
 }
 
-function terminalPage(title, prompt, command, output, width) {
+// Markdown output (a CLI or an agent that prints a report) drawn the way a terminal that renders
+// Markdown shows it: headings, bold, code, lists, tables and rules. Small on purpose: no HTML
+// passthrough, no nesting beyond one list level.
+function inline(text) {
+  return escapeHtml(text)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '<u>$1</u>');
+}
+
+export function markdownToHtml(text) {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fence = /^```(\w*)/.exec(line);
+    if (fence) {
+      const body = [];
+      while (++i < lines.length && !lines[i].startsWith("```")) body.push(lines[i]);
+      out.push(`<pre class="code">${escapeHtml(body.join("\n"))}</pre>`);
+      continue;
+    }
+    if (/^\|.*\|\s*$/.test(line) && /^\|[\s:|-]+\|\s*$/.test(lines[i + 1] ?? "")) {
+      const cells = (row) => row.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      const head = cells(line);
+      i++;
+      const rows = [];
+      while (i + 1 < lines.length && /^\|.*\|\s*$/.test(lines[i + 1])) rows.push(cells(lines[++i]));
+      out.push(`<table><tr>${head.map((c) => `<th>${inline(c)}</th>`).join("")}</tr>${rows
+        .map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</table>`);
+      continue;
+    }
+    const h = /^(#{1,6})\s+(.*)$/.exec(line);
+    if (h) { out.push(`<div class="h h${h[1].length}">${inline(h[2])}</div>`); continue; }
+    if (/^(-{3,}|\*{3,})\s*$/.test(line)) { out.push('<hr>'); continue; }
+    const li = /^(\s*)([-*]|\d+\.)\s+(.*)$/.exec(line);
+    if (li) {
+      const mark = /\d/.test(li[2]) ? li[2] : "•";
+      out.push(`<div class="li" style="padding-left:${li[1].length >= 2 ? 24 : 4}px"><span class="m">${mark}</span><span>${inline(li[3])}</span></div>`);
+      continue;
+    }
+    if (/^>\s?/.test(line)) { out.push(`<div class="q">${inline(line.replace(/^>\s?/, ""))}</div>`); continue; }
+    out.push(line.trim() === "" ? '<div class="gap"></div>' : `<div class="para">${inline(line)}</div>`);
+  }
+  return out.join("");
+}
+
+function terminalPage(title, prompt, command, output, width, render = "ansi") {
+  const body = render === "markdown"
+    ? `<div class="md">${markdownToHtml(output)}</div>`
+    : ansiToHtml(output);
   return `<!doctype html><meta charset="utf-8"><style>
   body{margin:0;padding:32px;background:transparent;font:14px/1.5 "JetBrains Mono","Fira Code",ui-monospace,Menlo,Consolas,monospace}
   .win{width:${width}px;border-radius:10px;overflow:hidden;background:#1e1e2e;color:#cdd6f4;box-shadow:0 12px 40px rgba(0,0,0,.35)}
   .bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#181825;color:#a6adc8;font-size:12px}
   .dot{width:12px;height:12px;border-radius:50%}.t{flex:1;text-align:center;margin-right:52px}
   pre{margin:0;padding:16px 18px 20px;white-space:pre-wrap;word-break:break-word;font:inherit}
-  .p{color:#a6e3a1}.c{color:#f9e2af}</style>
+  .p{color:#a6e3a1}.c{color:#f9e2af}
+  .md{white-space:normal}.md .h{font-weight:700;color:#89b4fa;margin:6px 0 2px}.md .h1{color:#cba6f7;font-size:15px}
+  .md .h2{color:#89b4fa}.md .h3,.md .h4{color:#94e2d5}.md b{color:#fff}.md i{color:#f5c2e7;font-style:italic}
+  .md code{color:#fab387}.md u{color:#89dceb}.md .gap{height:10px}.md .li{display:flex;gap:8px;margin:1px 0}
+  .md .li .m{flex:none;min-width:12px;color:#6c7086}.md .q{border-left:3px solid #45475a;padding-left:10px;color:#a6adc8}
+  .md hr{border:0;border-top:1px solid #45475a;margin:10px 0}
+  .md pre.code{padding:8px 12px;margin:4px 0;background:#181825;border-radius:6px;white-space:pre-wrap;color:#cdd6f4}
+  .md table{border-collapse:collapse;margin:6px 0;font-size:13px}.md th,.md td{border:1px solid #45475a;padding:3px 8px;text-align:left;vertical-align:top;word-break:normal;overflow-wrap:normal}
+  .md td:not(:last-child):not(:nth-last-child(2)),.md th{white-space:nowrap}
+  .md th{color:#f9e2af;font-weight:700}</style>
   <div class="win" id="win"><div class="bar"><span class="dot" style="background:#f38ba8"></span><span class="dot" style="background:#f9e2af"></span><span class="dot" style="background:#a6e3a1"></span><span class="t">${escapeHtml(title)}</span></div>
-  <pre>${command ? `<span class="p">${escapeHtml(prompt)}</span> <span class="c">${escapeHtml(command)}</span>\n` : ""}${ansiToHtml(output)}</pre></div>`;
+  <pre>${command ? `<span class="p">${escapeHtml(prompt)}</span> <span class="c">${escapeHtml(command)}</span>\n` : ""}${body}</pre></div>`;
 }
 
-function runCommand(shot, root) {
+function cachePath(shot, root) {
+  const key = createHash("sha1").update(`${root}\0${JSON.stringify(shot.terminal)}`).digest("hex").slice(0, 16);
+  return join(tmpdir(), "docs-shoot-cache", `${shot.name}-${key}.txt`);
+}
+
+function runCommand(shot, root, cached) {
+  const cache = cachePath(shot, root);
+  if (cached && existsSync(cache)) return readFileSync(cache, "utf8");
+  const output = execute(shot, root);
+  mkdirSync(dirname(cache), { recursive: true });
+  writeFileSync(cache, output);
+  return output;
+}
+
+function execute(shot, root) {
   const t = shot.terminal;
   const result = spawnSync(t.shell ?? "bash", ["-lc", t.command], {
     cwd: t.cwd ? resolve(root, t.cwd) : root,
@@ -301,12 +382,12 @@ async function shootWeb(context, plan, shot, root) {
   await page.close();
 }
 
-async function shootTerminal(browser, shot, root) {
-  const output = runCommand(shot, root);
+async function shootTerminal(browser, shot, root, cached) {
+  const output = runCommand(shot, root, cached);
   const t = shot.terminal;
   const width = t.width ?? 900;
   const page = await browser.newPage({ viewport: { width: width + 64, height: 400 }, deviceScaleFactor: t.scale ?? 2 });
-  await page.setContent(terminalPage(t.title ?? t.command, t.prompt ?? "$", t.showCommand === false ? "" : (t.display ?? t.command), output, width));
+  await page.setContent(terminalPage(t.title ?? t.command, t.prompt ?? "$", t.showCommand === false ? "" : (t.display ?? t.command), output, width, t.render));
   const out = resolve(root, shot.out);
   mkdirSync(dirname(out), { recursive: true });
   await page.locator("#win").screenshot({ path: out, omitBackground: true });
@@ -345,7 +426,7 @@ async function main() {
     for (const shot of shots) {
       try {
         if (shot.terminal) {
-          await shootTerminal(browser, shot, root);
+          await shootTerminal(browser, shot, root, args.cached);
         } else {
           if (!ready && plan.setup?.length) {
             const page = await context.newPage();

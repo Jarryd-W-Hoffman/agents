@@ -16,7 +16,7 @@ Screenshots are only as good as the data in them. Kite builds a demo vault in it
 
 - **A front-end app**: `npm run build && npm run preview -- --port 8199`, or the dev server.
 - **A desktop app** (Electron, NativePHP): screenshot the web view it serves, in a browser at the window's size. Kite's manual does exactly this.
-- **A CLI or library**: terminal shots of real commands on example input in the repository (`examples/`, `testdata/`). Write a small example file in the scratchpad if none fits, and run the command against it.
+- **A CLI, a library or a set of Claude Code plugins**: terminal shots of real commands (for plugins, `claude -p '/plugin:skill'` in a demo repository, with `"render": "markdown"`) on example input in the repository (`examples/`, `testdata/`). Write a small example file in the scratchpad if none fits, and run the command against it.
 - **A game** (Godot): run the project's own export or headless capture if it has one; otherwise ask the user for screenshots rather than faking them.
 
 Run the app in the background, wait until the port answers (`curl -sf <url>`), and stop it when the screenshots are done. Use a port the user's other projects do not hold.
@@ -57,6 +57,8 @@ Run the app in the background, wait until the port answers (`curl -sf <url>`), a
 - **Actions**: `goto`, `click`, `dblclick`, `hover`, `fill`, `type`, `press`, `select`, `check`, `uncheck`, `wait` (ms), `waitFor`, `waitForURL`, `scroll`, `eval`, `drag`, `setInput`. Add `"optional": true` to one that may not apply (a cookie banner).
 - **Theme**: `colorScheme: "dark"` works when the app follows the system theme. If it keeps its own setting, set it with `localStorage` (`{"localStorage": {"theme": "dark"}}`) or an `eval` action.
 - **Terminal**: `command` runs in the repository through `bash -lc`; `display` is what the picture shows as the typed command. Set `allowFailure` to show an error message on purpose, `maxLines` to trim long output, `columns` to the width tools should wrap at.
+- **Markdown output**: `"render": "markdown"` draws the output as Markdown (headings, tables, code, lists), the way Claude Code shows a report. Use it for a command that prints Markdown, such as `claude -p '/plugin:skill'`.
+- **A slow or paid command**: the raw output of every terminal shot is cached in the OS temp dir. `--cached` redraws from that cache without running the command again, so restyling a shot of a two-minute agent run costs nothing.
 
 ## 3. Take them
 
@@ -64,6 +66,7 @@ Run the app in the background, wait until the port answers (`curl -sf <url>`), a
 node "${CLAUDE_PLUGIN_ROOT}/scripts/shoot.mjs" docs/screenshots.json --check      # validate, no browser
 node "${CLAUDE_PLUGIN_ROOT}/scripts/shoot.mjs" docs/screenshots.json              # every shot
 node "${CLAUDE_PLUGIN_ROOT}/scripts/shoot.mjs" docs/screenshots.json --only a,b   # some
+node "${CLAUDE_PLUGIN_ROOT}/scripts/shoot.mjs" docs/screenshots.json --cached     # redraw terminal shots from their last output
 ```
 
 Playwright is taken from the repository's `node_modules` if it has it. Otherwise install `playwright-core` once outside the repository and point at it:
@@ -74,6 +77,8 @@ DOCS_PLAYWRIGHT_DIR="<scratchpad>/pw" node "${CLAUDE_PLUGIN_ROOT}/scripts/shoot.
 ```
 
 The browser is `$CHROME_PATH`, else an installed Chrome or Chromium, else Playwright's own (`npx playwright-core install chromium`).
+
+A shot of a check that looks for every image, its own included (`docs_check.py --plan`), fails the first time because its own image is missing. Take it once with `allowFailure` set, then again without: the second take is the real, passing output.
 
 ## 4. Look at every image
 

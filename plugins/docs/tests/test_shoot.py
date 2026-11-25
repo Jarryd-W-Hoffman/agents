@@ -101,5 +101,29 @@ class Ansi(unittest.TestCase):
         self.assertEqual(self.convert("a\x1b[2Kb"), "ab")
 
 
+@unittest.skipUnless(NODE, "node is not on PATH")
+class Markdown(unittest.TestCase):
+    def convert(self, text: str) -> str:
+        script = "import(process.argv[1]).then(m => process.stdout.write(m.markdownToHtml(process.argv[2])))"
+        result = subprocess.run([NODE, "-e", script, "file://" + SHOOT, text], capture_output=True,
+                                text=True, timeout=30, check=True)
+        return result.stdout
+
+    def test_headings_bold_code_and_lists(self):
+        html = self.convert("# Plan: `HEAD`\n\n**Changed:** 3 files\n- one\n1. two")
+        self.assertIn('<div class="h h1">Plan: <code>HEAD</code></div>', html)
+        self.assertIn('<div class="para"><b>Changed:</b> 3 files</div>', html)
+        self.assertIn('<span class="m">•</span><span>one</span>', html)
+        self.assertIn('<span class="m">1.</span><span>two</span>', html)
+
+    def test_tables_and_fences(self):
+        html = self.convert("| A | B |\n|---|---|\n| `x` | y |\n\n```json\n{\"a\": 1}\n```")
+        self.assertIn("<table><tr><th>A</th><th>B</th></tr><tr><td><code>x</code></td><td>y</td></tr></table>", html)
+        self.assertIn('<pre class="code">{&quot;a&quot;: 1}</pre>'.replace("&quot;", '"'), html)
+
+    def test_html_in_the_output_is_escaped(self):
+        self.assertIn("&lt;script&gt;", self.convert("<script>alert(1)</script>"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

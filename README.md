@@ -106,7 +106,7 @@ Each plugin's README is its manual: usage, output, configuration, and how to cop
 
 ### 📝 Documenting
 
-- **READMEs and manuals in one shape:** `docs` writes them like Kite's, with diagrams of the real mechanism, pseudocode for the rules, and real screenshots. This README was written with `/docs:readme`, and every image on it was taken by `plugins/docs/scripts/shoot.mjs` from [`docs/screenshots.json`](docs/screenshots.json).
+- **READMEs and manuals in one shape:** `docs` writes them like Kite's, with diagrams of the real mechanism, pseudocode for the rules, and real screenshots. This README was written by following `/docs:readme`'s procedure and templates, and every image on it was taken by `plugins/docs/scripts/shoot.mjs` from [`docs/screenshots.json`](docs/screenshots.json).
 - **Checked, not trusted:** `docs_check.py` fails on missing images and alt text, broken links and anchors, and malformed Mermaid diagrams.
 
 <p align="center">
